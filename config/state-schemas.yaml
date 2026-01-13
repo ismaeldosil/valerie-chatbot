@@ -1,0 +1,735 @@
+# State Schemas Configuration
+# Valerie Supplier Recommendation Chatbot
+# Defines state structures for LangGraph graphs
+
+version: "1.0.0"
+
+# =============================================================================
+# Product Graph State
+# =============================================================================
+
+product_state:
+  name: SupplierChatbotState
+  description: "Main state for supplier recommendation conversations"
+
+  # ---------------------------------------------------------------------------
+  # Core State Fields
+  # ---------------------------------------------------------------------------
+  fields:
+    # Session Information
+    session_id:
+      type: string
+      required: true
+      description: "Unique session identifier"
+
+    correlation_id:
+      type: string
+      required: true
+      description: "Request correlation ID for tracing"
+
+    timestamp:
+      type: datetime
+      required: true
+      description: "Request timestamp"
+
+    # User Input
+    user_message:
+      type: string
+      required: true
+      description: "Original user message"
+
+    conversation_history:
+      type: array
+      items:
+        type: object
+        properties:
+          role:
+            type: string
+            enum: [user, assistant]
+          content:
+            type: string
+          timestamp:
+            type: datetime
+      max_items: 50
+      description: "Recent conversation history"
+
+    # Intent Classification
+    intent:
+      type: object
+      properties:
+        primary:
+          type: string
+          enum:
+            - supplier_search
+            - supplier_comparison
+            - compliance_check
+            - technical_question
+            - risk_assessment
+            - general_inquiry
+            - clarification
+            - greeting
+            - out_of_scope
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        secondary:
+          type: array
+          items:
+            type: object
+            properties:
+              intent:
+                type: string
+              confidence:
+                type: number
+      description: "Classified intent from user message"
+
+    # Extracted Entities
+    entities:
+      type: object
+      properties:
+        process_types:
+          type: array
+          items:
+            type: string
+        certifications:
+          type: array
+          items:
+            type: string
+        locations:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [state, city, region, country]
+              value:
+                type: string
+        programs:
+          type: array
+          items:
+            type: string
+        suppliers:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+        materials:
+          type: array
+          items:
+            type: string
+        specifications:
+          type: array
+          items:
+            type: string
+      description: "Entities extracted from user message"
+
+    # Search Results
+    search_results:
+      type: object
+      properties:
+        suppliers:
+          type: array
+          items:
+            type: object
+            properties:
+              supplier_id:
+                type: string
+              supplier_name:
+                type: string
+              match_score:
+                type: number
+              location:
+                type: object
+              capabilities:
+                type: array
+              certifications:
+                type: array
+              metrics:
+                type: object
+        total_count:
+          type: integer
+        criteria_used:
+          type: array
+        criteria_relaxed:
+          type: array
+      description: "Supplier search results"
+
+    # Compliance Validation
+    compliance_results:
+      type: object
+      properties:
+        validations:
+          type: array
+          items:
+            type: object
+            properties:
+              supplier_id:
+                type: string
+              overall_status:
+                type: string
+                enum: [APPROVED, CONDITIONAL, NOT_APPROVED]
+              certifications:
+                type: array
+              alerts:
+                type: array
+      description: "Compliance validation results"
+
+    # Comparison Results
+    comparison_results:
+      type: object
+      properties:
+        comparison_id:
+          type: string
+        suppliers_compared:
+          type: array
+        recommendation:
+          type: object
+        visualization_data:
+          type: object
+      description: "Supplier comparison results"
+
+    # Risk Assessment
+    risk_results:
+      type: object
+      properties:
+        assessment_id:
+          type: string
+        supplier_id:
+          type: string
+        overall_risk:
+          type: object
+        risk_breakdown:
+          type: object
+        mitigation_recommendations:
+          type: array
+      description: "Risk assessment results"
+
+    # Process Expertise
+    process_answer:
+      type: object
+      properties:
+        query_id:
+          type: string
+        answer:
+          type: object
+        confidence:
+          type: number
+        sources:
+          type: array
+      description: "Process expertise response"
+
+    # Final Response
+    response:
+      type: object
+      properties:
+        text:
+          type: string
+        format:
+          type: string
+          enum: [markdown, plain_text, html]
+        suggested_followups:
+          type: array
+          max_items: 3
+        metadata:
+          type: object
+      description: "Generated response for user"
+
+    # Context
+    context:
+      type: object
+      properties:
+        current_topic:
+          type: string
+        suppliers_in_focus:
+          type: array
+        active_search_criteria:
+          type: object
+        user_preferences:
+          type: object
+      description: "Conversation context"
+
+    # Error State
+    errors:
+      type: array
+      items:
+        type: object
+        properties:
+          code:
+            type: string
+          message:
+            type: string
+          severity:
+            type: string
+            enum: [warning, error, critical]
+          agent:
+            type: string
+          timestamp:
+            type: datetime
+      description: "Errors encountered during processing"
+
+    # Metadata
+    metadata:
+      type: object
+      properties:
+        user_id:
+          type: string
+        user_role:
+          type: string
+          enum: [buyer, engineer, quality, manager]
+        locale:
+          type: string
+          default: "en-US"
+        detail_preference:
+          type: string
+          enum: [brief, moderate, detailed]
+        nodes_visited:
+          type: array
+          items:
+            type: string
+        total_latency_ms:
+          type: integer
+      description: "Request metadata"
+
+  # ---------------------------------------------------------------------------
+  # State Reducers
+  # ---------------------------------------------------------------------------
+  reducers:
+    conversation_history:
+      type: append
+      max_items: 50
+      description: "Append new messages to history"
+
+    errors:
+      type: append
+      max_items: 10
+      description: "Append errors, keep last 10"
+
+    nodes_visited:
+      type: append
+      description: "Track visited nodes"
+
+  # ---------------------------------------------------------------------------
+  # State Channels
+  # ---------------------------------------------------------------------------
+  channels:
+    user_message:
+      type: last_value
+      description: "Current user message"
+
+    intent:
+      type: last_value
+      description: "Latest intent classification"
+
+    search_results:
+      type: last_value
+      description: "Latest search results"
+
+    response:
+      type: last_value
+      description: "Latest response"
+
+# =============================================================================
+# Development Graph State
+# =============================================================================
+
+development_state:
+  name: DevelopmentWorkflowState
+  description: "State for development team workflow"
+
+  fields:
+    # Ticket Information
+    ticket_id:
+      type: string
+      required: true
+      description: "Ticket identifier"
+
+    ticket:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum:
+            - backlog
+            - ready
+            - in_progress
+            - review
+            - done
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        assignee:
+          type: string
+        sprint:
+          type: string
+        acceptance_criteria:
+          type: array
+        dependencies:
+          type: array
+      description: "Current ticket details"
+
+    # Design
+    design:
+      type: object
+      properties:
+        architect_notes:
+          type: string
+        api_contracts:
+          type: array
+        diagrams:
+          type: array
+        decisions:
+          type: array
+        approved:
+          type: boolean
+      description: "Architecture and design artifacts"
+
+    # Implementation
+    implementation:
+      type: object
+      properties:
+        files_created:
+          type: array
+        files_modified:
+          type: array
+        code_snippets:
+          type: array
+        backend_complete:
+          type: boolean
+        frontend_complete:
+          type: boolean
+      description: "Implementation artifacts"
+
+    # Testing
+    testing:
+      type: object
+      properties:
+        test_cases:
+          type: array
+        test_results:
+          type: object
+          properties:
+            passed:
+              type: integer
+            failed:
+              type: integer
+            skipped:
+              type: integer
+            coverage:
+              type: number
+        bugs_found:
+          type: array
+        qa_approved:
+          type: boolean
+      description: "Testing results"
+
+    # Review
+    review:
+      type: object
+      properties:
+        reviewer:
+          type: string
+        comments:
+          type: array
+        approved:
+          type: boolean
+        revision_required:
+          type: boolean
+        revision_notes:
+          type: string
+      description: "Supervisor review"
+
+    # Documentation
+    documentation:
+      type: object
+      properties:
+        api_docs:
+          type: boolean
+        user_guide:
+          type: boolean
+        admin_guide:
+          type: boolean
+        complete:
+          type: boolean
+      description: "Documentation status"
+
+    # Workflow
+    current_agent:
+      type: string
+      description: "Currently active agent"
+
+    workflow_history:
+      type: array
+      items:
+        type: object
+        properties:
+          agent:
+            type: string
+          action:
+            type: string
+          timestamp:
+            type: datetime
+          output:
+            type: object
+      description: "Workflow execution history"
+
+# =============================================================================
+# Shared State Components
+# =============================================================================
+
+shared:
+  # ---------------------------------------------------------------------------
+  # Supplier Object
+  # ---------------------------------------------------------------------------
+  supplier:
+    type: object
+    properties:
+      supplier_id:
+        type: string
+        description: "Unique supplier identifier"
+      supplier_name:
+        type: string
+        description: "Supplier company name"
+      supplier_number:
+        type: string
+        description: "Oracle supplier number"
+      status:
+        type: string
+        enum: [APPROVED, PENDING, SUSPENDED, INACTIVE]
+      location:
+        type: object
+        properties:
+          address:
+            type: string
+          city:
+            type: string
+          state:
+            type: string
+          postal_code:
+            type: string
+          country:
+            type: string
+      capabilities:
+        type: array
+        items:
+          type: string
+      certifications:
+        type: array
+        items:
+          $ref: "#/shared/certification"
+      metrics:
+        $ref: "#/shared/supplier_metrics"
+      contacts:
+        type: array
+        items:
+          type: object
+          properties:
+            name:
+              type: string
+            role:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+
+  # ---------------------------------------------------------------------------
+  # Certification Object
+  # ---------------------------------------------------------------------------
+  certification:
+    type: object
+    properties:
+      name:
+        type: string
+        description: "Certification name (e.g., Nadcap, AS9100)"
+      type:
+        type: string
+        enum: [nadcap, qms, oem, regulatory]
+      status:
+        type: string
+        enum: [CURRENT, EXPIRING_SOON, EXPIRED, NOT_FOUND]
+      accreditation_id:
+        type: string
+      issue_date:
+        type: date
+      expiry_date:
+        type: date
+      days_until_expiry:
+        type: integer
+      scope:
+        type: string
+      scope_match:
+        type: boolean
+      auditor:
+        type: string
+
+  # ---------------------------------------------------------------------------
+  # Supplier Metrics
+  # ---------------------------------------------------------------------------
+  supplier_metrics:
+    type: object
+    properties:
+      quality_rate:
+        type: number
+        minimum: 0
+        maximum: 100
+        description: "Quality rate percentage"
+      on_time_delivery:
+        type: number
+        minimum: 0
+        maximum: 100
+        description: "On-time delivery percentage"
+      lead_time_days:
+        type: integer
+        minimum: 0
+        description: "Average lead time in days"
+      responsiveness_score:
+        type: number
+        minimum: 0
+        maximum: 5
+        description: "Responsiveness rating"
+      capacity_utilization:
+        type: number
+        minimum: 0
+        maximum: 100
+        description: "Current capacity utilization"
+      ncr_count_12m:
+        type: integer
+        description: "NCRs in last 12 months"
+      escapes_12m:
+        type: integer
+        description: "Quality escapes in last 12 months"
+      total_orders_12m:
+        type: integer
+        description: "Total orders in last 12 months"
+      annual_spend:
+        type: number
+        description: "Annual spend with supplier"
+      period:
+        type: object
+        properties:
+          start:
+            type: date
+          end:
+            type: date
+
+  # ---------------------------------------------------------------------------
+  # Risk Score
+  # ---------------------------------------------------------------------------
+  risk_score:
+    type: object
+    properties:
+      score:
+        type: number
+        minimum: 1
+        maximum: 5
+        description: "Risk score (1=low, 5=high)"
+      level:
+        type: string
+        enum: [LOW, LOW-MEDIUM, MEDIUM, MEDIUM-HIGH, HIGH]
+      trend:
+        type: string
+        enum: [IMPROVING, STABLE, DECLINING]
+      factors:
+        type: array
+        items:
+          type: string
+      alerts:
+        type: array
+        items:
+          type: object
+          properties:
+            type:
+              type: string
+            message:
+              type: string
+            severity:
+              type: string
+
+# =============================================================================
+# State Validation
+# =============================================================================
+
+validation:
+  # Required fields per node
+  node_requirements:
+    orchestrator:
+      input:
+        - session_id
+        - user_message
+      output:
+        - intent
+        - response
+
+    intent_classifier:
+      input:
+        - user_message
+      output:
+        - intent
+        - entities
+
+    supplier_search:
+      input:
+        - entities
+      output:
+        - search_results
+
+    compliance_validation:
+      input:
+        - search_results.suppliers
+      output:
+        - compliance_results
+
+    response_generation:
+      input:
+        - intent
+      output:
+        - response
+
+  # State invariants
+  invariants:
+    - name: session_exists
+      condition: "session_id is not null"
+      severity: critical
+
+    - name: valid_intent
+      condition: "intent.confidence >= 0 and intent.confidence <= 1"
+      severity: error
+
+    - name: search_has_criteria
+      condition: "if search_results then entities is not empty"
+      severity: warning
+
+# =============================================================================
+# Checkpointing
+# =============================================================================
+
+checkpointing:
+  strategy: after_each_node
+  storage: redis
+
+  serialization:
+    format: json
+    compression: gzip
+    exclude_fields:
+      - conversation_history  # Too large, store separately
+      - raw_oracle_response   # Transient
+
+  retention:
+    session_checkpoints: 24h
+    completed_sessions: 7d
+    error_sessions: 30d
+
+  recovery:
+    enabled: true
+    max_replay_nodes: 5
+    fallback_to_initial: true

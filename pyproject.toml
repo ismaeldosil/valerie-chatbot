@@ -1,0 +1,87 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "valerie-chatbot"
+version = "1.0.0"
+description = "Multi-domain AI chatbot platform with pluggable business domains"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [
+    { name = "Ismael Dosil", email = "ismael@dosil.dev" }
+]
+keywords = ["chatbot", "langgraph", "multi-agent", "multi-domain", "ai"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "langgraph>=0.2.0",
+    "langchain>=0.3.0",
+    "langchain-anthropic>=0.2.0",
+    "langsmith>=0.1.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "redis>=5.0.0",
+    "httpx>=0.27.0",
+    "python-dotenv>=1.0.0",
+    "rich>=13.0.0",
+    "typer>=0.12.0",
+    "fastapi>=0.126.0",
+    "uvicorn>=0.38.0",
+    "streamlit>=1.52.2",
+    "pyjwt>=2.8.0",
+    # Observability dependencies
+    "structlog>=24.0.0",
+    "prometheus-client>=0.20.0",
+    "langfuse>=2.0.0",
+    # Data layer dependencies
+    "sqlalchemy>=2.0.0",
+    "pyyaml>=6.0.0",
+    "openpyxl>=3.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.4.0",
+    "mypy>=1.10.0",
+]
+
+[project.scripts]
+valerie-chat = "valerie.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/valerie"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.14.10",
+]

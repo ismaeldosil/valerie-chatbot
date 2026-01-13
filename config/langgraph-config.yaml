@@ -1,0 +1,626 @@
+# LangGraph Configuration
+# Valerie Supplier Recommendation Chatbot
+# Updated with 2025 Best Practices: Guardrails, HITL, Observability, Fallback, Evaluation
+
+version: "2.0.0"
+name: valerie-chatbot
+
+# =============================================================================
+# Graph Definitions
+# =============================================================================
+
+graphs:
+  # ---------------------------------------------------------------------------
+  # Main Product Graph - Supplier Recommendation Chatbot
+  # ---------------------------------------------------------------------------
+  product:
+    name: supplier_recommendation_graph
+    description: "Main orchestration graph for supplier recommendations"
+    entry_point: guardrails_input  # NEW: Entry through guardrails
+
+    nodes:
+      # =========================================================================
+      # NEW: Infrastructure Agents (2025 Best Practices)
+      # =========================================================================
+
+      guardrails_input:
+        agent: guardrails
+        description: "Input validation, security checks, PII detection"
+        type: infrastructure
+        next:
+          - orchestrator
+        timeout_ms: 1000
+        config:
+          validation_type: "input"
+          checks:
+            - prompt_injection
+            - pii_detection
+            - itar_screening
+            - input_sanitization
+
+      guardrails_output:
+        agent: guardrails
+        description: "Output validation before returning to user"
+        type: infrastructure
+        next:
+          - evaluation
+        timeout_ms: 1000
+        config:
+          validation_type: "output"
+          checks:
+            - pii_redaction
+            - itar_compliance
+            - content_safety
+            - response_validation
+
+      human_in_the_loop:
+        agent: human_in_the_loop
+        description: "Approval workflows and human oversight"
+        type: infrastructure
+        conditional_edges:
+          - condition: "approved == true"
+            target: response_generation
+          - condition: "rejected == true"
+            target: response_generation  # With rejection message
+          - condition: "escalated == true"
+            target: WAIT_FOR_HUMAN
+          - condition: "timeout == true"
+            target: fallback_handler
+        timeout_ms: 86400000  # 24 hours for human response
+        config:
+          checkpointing: true
+          notification_channels:
+            - email
+            - slack
+            - in_app
+
+      observability:
+        agent: observability
+        description: "Distributed tracing and metrics collection"
+        type: infrastructure
+        mode: parallel  # Runs alongside all nodes
+        config:
+          langsmith_enabled: true
+          trace_inputs: true
+          trace_outputs: true
+          capture_intermediate_steps: true
+          redact_pii: true
+
+      fallback_handler:
+        agent: fallback_recovery
+        description: "Error handling and graceful degradation"
+        type: infrastructure
+        conditional_edges:
+          - condition: "retry == true"
+            target: RETRY_PREVIOUS
+          - condition: "fallback_available == true"
+            target: response_generation
+          - condition: "degraded == true"
+            target: response_generation
+          - condition: "abort == true"
+            target: END
+        config:
+          circuit_breaker_enabled: true
+          cache_fallback: true
+          graceful_degradation: true
+
+      evaluation:
+        agent: evaluation
+        description: "Quality assessment of responses"
+        type: infrastructure
+        next:
+          - END
+        timeout_ms: 3000
+        config:
+          llm_judge: true
+          automated_metrics: true
+          feedback_collection: true
+          min_quality_threshold: 0.6
+
+      # =========================================================================
+      # Core Agents
+      # =========================================================================
+
+      orchestrator:
+        agent: orchestrator
+        description: "Central coordinator for all requests"
+        next:
+          - intent_classifier
+        timeout_ms: 5000
+        error_handler: fallback_handler
+
+      intent_classifier:
+        agent: intent_classifier
+        description: "Classifies user intent and extracts entities"
+        conditional_edges:
+          - condition: "intent == 'supplier_search'"
+            target: supplier_search
+          - condition: "intent == 'supplier_comparison'"
+            target: supplier_comparison
+          - condition: "intent == 'compliance_check'"
+            target: compliance_validation
+          - condition: "intent == 'technical_question'"
+            target: process_expertise
+          - condition: "intent == 'risk_assessment'"
+            target: risk_assessment
+          - condition: "intent == 'clarification'"
+            target: response_generation
+          - condition: "intent == 'greeting'"
+            target: response_generation
+          - condition: "default"
+            target: response_generation
+        timeout_ms: 3000
+        error_handler: fallback_handler
+
+      supplier_search:
+        agent: supplier_search
+        description: "Searches and ranks suppliers"
+        dependencies:
+          - oracle_fusion
+          - memory_context
+        next:
+          - compliance_validation
+        timeout_ms: 10000
+        error_handler: fallback_handler
+        hitl_triggers:
+          - condition: "result_count == 0"
+            request_type: "review_request"
+          - condition: "new_supplier_found == true"
+            request_type: "approval_required"
+
+      compliance_validation:
+        agent: compliance_validation
+        description: "Validates supplier certifications"
+        dependencies:
+          - oracle_fusion
+        next:
+          - check_hitl_required
+        optional: true
+        timeout_ms: 8000
+        error_handler: fallback_handler
+        hitl_triggers:
+          - condition: "itar_decision_required == true"
+            request_type: "itar_decision"
+          - condition: "certification_expired == true"
+            request_type: "exception_handling"
+
+      check_hitl_required:
+        agent: orchestrator
+        description: "Check if human approval is needed"
+        type: router
+        conditional_edges:
+          - condition: "requires_human_approval == true"
+            target: human_in_the_loop
+          - condition: "default"
+            target: response_generation
+
+      supplier_comparison:
+        agent: supplier_comparison
+        description: "Compares multiple suppliers"
+        dependencies:
+          - oracle_fusion
+          - compliance_validation
+          - risk_assessment
+        next:
+          - check_hitl_required
+        timeout_ms: 12000
+        error_handler: fallback_handler
+        hitl_triggers:
+          - condition: "contract_value > 100000"
+            request_type: "approval_required"
+
+      risk_assessment:
+        agent: risk_assessment
+        description: "Assesses supplier risks"
+        dependencies:
+          - oracle_fusion
+          - compliance_validation
+        next:
+          - check_hitl_required
+        timeout_ms: 15000
+        error_handler: fallback_handler
+        hitl_triggers:
+          - condition: "risk_score > 0.8"
+            request_type: "review_request"
+          - condition: "supplier_on_watchlist == true"
+            request_type: "escalation"
+
+      process_expertise:
+        agent: process_expertise
+        description: "Provides technical process information"
+        next:
+          - response_generation
+        timeout_ms: 10000
+        error_handler: fallback_handler
+
+      oracle_fusion:
+        agent: oracle_fusion
+        description: "ERP data integration layer"
+        type: data_source
+        timeout_ms: 10000
+        retry:
+          max_attempts: 3
+          backoff: exponential
+        circuit_breaker:
+          failure_threshold: 5
+          recovery_timeout_seconds: 30
+        error_handler: fallback_handler
+
+      memory_context:
+        agent: memory_context
+        description: "Conversation memory and context"
+        type: utility
+        timeout_ms: 2000
+        error_handler: fallback_handler
+
+      response_generation:
+        agent: response_generation
+        description: "Formats final response"
+        next:
+          - guardrails_output  # NEW: Route through output guardrails
+        timeout_ms: 5000
+        error_handler: fallback_handler
+
+    # Parallel execution groups
+    parallel_groups:
+      - name: data_enrichment
+        nodes:
+          - compliance_validation
+          - risk_assessment
+        description: "Run compliance and risk in parallel when both needed"
+
+      - name: context_loading
+        nodes:
+          - memory_context
+          - oracle_fusion
+        description: "Load context and data in parallel"
+
+      - name: infrastructure_parallel
+        nodes:
+          - observability
+        description: "Infrastructure agents running in parallel with core flow"
+
+  # ---------------------------------------------------------------------------
+  # Development Graph - Virtual Development Team
+  # ---------------------------------------------------------------------------
+  development:
+    name: development_team_graph
+    description: "Orchestration for development workflow"
+    entry_point: project_manager
+
+    nodes:
+      project_manager:
+        agent: project_manager
+        description: "Creates and manages tickets"
+        next:
+          - architect
+        timeout_ms: 30000
+
+      architect:
+        agent: architect
+        description: "Technical design and review"
+        conditional_edges:
+          - condition: "task_type == 'backend'"
+            target: backend_developer
+          - condition: "task_type == 'frontend'"
+            target: frontend_developer
+          - condition: "task_type == 'infra'"
+            target: devops_engineer
+          - condition: "task_type == 'docs'"
+            target: tech_writer
+        timeout_ms: 30000
+
+      backend_developer:
+        agent: backend_developer
+        description: "Backend implementation"
+        next:
+          - qa_tester
+        timeout_ms: 60000
+
+      frontend_developer:
+        agent: frontend_developer
+        description: "Frontend implementation"
+        next:
+          - qa_tester
+        timeout_ms: 60000
+
+      devops_engineer:
+        agent: devops_engineer
+        description: "Infrastructure and deployment"
+        next:
+          - qa_tester
+        timeout_ms: 60000
+
+      tech_writer:
+        agent: tech_writer
+        description: "Documentation"
+        next:
+          - dev_supervisor
+        timeout_ms: 30000
+
+      qa_tester:
+        agent: qa_tester
+        description: "Testing and validation"
+        next:
+          - dev_supervisor
+        timeout_ms: 45000
+
+      dev_supervisor:
+        agent: dev_supervisor
+        description: "Review and approval"
+        conditional_edges:
+          - condition: "approved == true"
+            target: project_manager
+          - condition: "needs_revision == true"
+            target: ROUTE_BACK
+          - condition: "default"
+            target: END
+        timeout_ms: 30000
+
+# =============================================================================
+# State Management
+# =============================================================================
+
+state:
+  persistence:
+    enabled: true
+    backend: redis
+
+    redis:
+      host: ${REDIS_HOST:-localhost}
+      port: ${REDIS_PORT:-6379}
+      db: 0
+      password: ${REDIS_PASSWORD:-}
+      ssl: ${REDIS_SSL:-false}
+
+    ttl:
+      session: 86400        # 24 hours
+      checkpoint: 3600      # 1 hour
+      cache: 1800           # 30 minutes
+
+  checkpointing:
+    enabled: true
+    frequency: after_each_node
+    max_checkpoints_per_session: 100
+
+  serialization:
+    format: json
+    compression: gzip
+
+# =============================================================================
+# Execution Configuration
+# =============================================================================
+
+execution:
+  # Default timeouts (can be overridden per node)
+  timeouts:
+    default_ms: 30000
+    max_total_ms: 120000
+
+  # Retry configuration
+  retry:
+    enabled: true
+    max_attempts: 3
+    backoff:
+      type: exponential
+      initial_ms: 1000
+      max_ms: 10000
+      multiplier: 2
+
+  # Parallel execution
+  parallelism:
+    max_concurrent_nodes: 5
+    max_concurrent_sessions: 100
+
+  # Rate limiting
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 1000
+    burst_limit: 50
+
+# =============================================================================
+# Tracing & Observability
+# =============================================================================
+
+tracing:
+  enabled: true
+
+  langsmith:
+    enabled: ${LANGSMITH_ENABLED:-false}
+    project: valerie-chatbot
+    api_key: ${LANGSMITH_API_KEY:-}
+
+  opentelemetry:
+    enabled: ${OTEL_ENABLED:-false}
+    endpoint: ${OTEL_ENDPOINT:-}
+    service_name: valerie-chatbot
+
+  logging:
+    level: ${LOG_LEVEL:-INFO}
+    format: json
+    include_state: false  # Don't log full state (may contain PII)
+
+# =============================================================================
+# Error Handling
+# =============================================================================
+
+error_handling:
+  # Global error handlers
+  handlers:
+    - type: timeout
+      action: retry
+      max_retries: 2
+
+    - type: validation_error
+      action: reject
+      response_agent: response_generation
+
+    - type: agent_unavailable
+      action: circuit_break
+      fallback_agent: null
+
+    - type: unknown
+      action: escalate
+      notify: ops_channel
+
+  # Circuit breaker settings
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 5
+    success_threshold: 3
+    timeout_seconds: 30
+
+  # Fallback behaviors
+  fallback:
+    use_cache: true
+    cache_max_age_seconds: 3600
+    graceful_degradation: true
+
+# =============================================================================
+# Security
+# =============================================================================
+
+security:
+  # Authentication
+  authentication:
+    required: true
+    method: jwt
+    issuer: ${AUTH_ISSUER:-}
+    audience: ${AUTH_AUDIENCE:-}
+
+  # Authorization
+  authorization:
+    enabled: true
+    rbac:
+      roles:
+        - name: standard_user
+          permissions:
+            - search_suppliers
+            - view_compliance
+            - ask_questions
+
+        - name: procurement
+          permissions:
+            - search_suppliers
+            - view_compliance
+            - compare_suppliers
+            - view_risk
+            - ask_questions
+
+        - name: admin
+          permissions:
+            - "*"
+
+  # Data protection
+  data_protection:
+    mask_pii: true
+    mask_fields:
+      - tax_id
+      - bank_account
+      - ssn
+    itar_handling:
+      enabled: true
+      require_clearance: true
+      audit_all_access: true
+
+# =============================================================================
+# Model Configuration
+# =============================================================================
+# NOTE: Model names are centralized in config/model-registry.yaml
+# Use ModelRegistry class in Python code to get models dynamically.
+# The values below are used when YAML config is loaded directly.
+# For most cases, use: from valerie.models import get_model_registry
+
+models:
+  # Default model - references model-registry.yaml
+  # To change models globally, edit config/model-registry.yaml
+  default:
+    provider: ${VALERIE_LLM_PROVIDER:-ollama}
+    model: ${VALERIE_MODEL_NAME:-}  # Empty = use registry default
+    temperature: 0.1
+    max_tokens: 4096
+
+  # Per-agent overrides - managed via agent_assignments in model-registry.yaml
+  # These are fallbacks if registry is not available
+  overrides:
+    intent_classifier:
+      # Uses "fast" tier from registry
+      temperature: 0
+      max_tokens: 1024
+
+    process_expertise:
+      # Uses "standard" tier from registry
+      temperature: 0.2
+      max_tokens: 4096
+
+    response_generation:
+      # Uses "standard" tier from registry
+      temperature: 0.3
+      max_tokens: 2048
+
+# =============================================================================
+# Feature Flags
+# =============================================================================
+
+feature_flags:
+  # Experimental features
+  experimental:
+    multi_language: false
+    voice_input: false
+    streaming_responses: true
+
+  # Gradual rollout
+  rollout:
+    new_search_algorithm:
+      enabled: false
+      percentage: 0
+
+    enhanced_risk_model:
+      enabled: false
+      percentage: 0
+
+  # A/B testing
+  ab_tests:
+    response_format:
+      enabled: false
+      variants:
+        - name: tables
+          weight: 50
+        - name: bullets
+          weight: 50
+
+# =============================================================================
+# Environment-Specific Settings
+# =============================================================================
+
+environments:
+  development:
+    tracing:
+      level: DEBUG
+    security:
+      authentication:
+        required: false
+    models:
+      default:
+        # Uses "fast" tier for development - see model-registry.yaml
+        model: ${VALERIE_MODEL_NAME:-}  # Uses registry fast tier
+
+  staging:
+    tracing:
+      level: INFO
+    security:
+      authentication:
+        required: true
+
+  production:
+    tracing:
+      level: WARN
+    execution:
+      rate_limiting:
+        requests_per_minute: 5000
+    security:
+      authentication:
+        required: true
+      data_protection:
+        itar_handling:
+          audit_all_access: true

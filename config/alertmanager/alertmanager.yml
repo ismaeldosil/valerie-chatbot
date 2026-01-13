@@ -1,0 +1,81 @@
+# Alertmanager Configuration for Valerie Supplier Chatbot
+# Documentation: https://prometheus.io/docs/alerting/latest/configuration/
+
+global:
+  # How long to wait before sending a notification again if it has already been sent
+  resolve_timeout: 5m
+
+# Route tree configuration
+route:
+  # Default receiver
+  receiver: 'default-receiver'
+
+  # Group alerts by these labels
+  group_by: ['alertname', 'severity']
+
+  # How long to initially wait before sending a notification
+  group_wait: 30s
+
+  # How long to wait before sending a notification about new alerts in a group
+  group_interval: 5m
+
+  # How long to wait before sending a notification again for the same alert
+  repeat_interval: 4h
+
+  # Child routes
+  routes:
+    # Critical alerts - send immediately
+    - match:
+        severity: critical
+      receiver: 'critical-receiver'
+      group_wait: 10s
+      repeat_interval: 1h
+
+    # Warning alerts
+    - match:
+        severity: warning
+      receiver: 'warning-receiver'
+      repeat_interval: 4h
+
+# Receivers configuration
+receivers:
+  # Default receiver (console/log only)
+  - name: 'default-receiver'
+    # Uncomment to enable webhook notifications
+    # webhook_configs:
+    #   - url: 'http://your-webhook-endpoint/alerts'
+    #     send_resolved: true
+
+  # Critical alerts receiver
+  - name: 'critical-receiver'
+    # Uncomment and configure for Slack notifications
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+    #     channel: '#valerie-alerts-critical'
+    #     title: '{{ .Status | toUpper }}: {{ .CommonAnnotations.summary }}'
+    #     text: '{{ .CommonAnnotations.description }}'
+    #     send_resolved: true
+
+    # Uncomment and configure for PagerDuty
+    # pagerduty_configs:
+    #   - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+    #     severity: critical
+
+  # Warning alerts receiver
+  - name: 'warning-receiver'
+    # Uncomment and configure for Slack notifications
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+    #     channel: '#valerie-alerts'
+    #     title: '{{ .Status | toUpper }}: {{ .CommonAnnotations.summary }}'
+    #     text: '{{ .CommonAnnotations.description }}'
+    #     send_resolved: true
+
+# Inhibition rules - mute less severe alerts when more severe ones fire
+inhibit_rules:
+  # If a critical alert fires, mute corresponding warning alerts
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname']

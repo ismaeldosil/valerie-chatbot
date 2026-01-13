@@ -1,0 +1,136 @@
+# Prometheus Alert Rules for Valerie Supplier Chatbot
+# Documentation: https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/
+
+groups:
+  # ==========================================================================
+  # API Health Alerts
+  # ==========================================================================
+  - name: valerie-api-health
+    rules:
+      - alert: ValerieAPIDown
+        expr: up{job="valerie-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Valerie API is down"
+          description: "The Valerie Supplier Chatbot API has been down for more than 1 minute."
+
+      - alert: ValerieHighErrorRate
+        expr: |
+          sum(rate(valerie_requests_total{status=~"5.."}[5m]))
+          / sum(rate(valerie_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 5% for the last 5 minutes (current: {{ $value | humanizePercentage }})"
+
+      - alert: ValerieHighLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(valerie_request_duration_seconds_bucket[5m])) by (le)) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency detected"
+          description: "95th percentile latency is above 10 seconds (current: {{ $value | humanizeDuration }})"
+
+  # ==========================================================================
+  # LLM Provider Alerts
+  # ==========================================================================
+  - name: valerie-llm-providers
+    rules:
+      - alert: LLMProviderDown
+        expr: valerie_llm_provider_available == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "LLM Provider {{ $labels.provider }} is unavailable"
+          description: "The LLM provider {{ $labels.provider }} has been unavailable for more than 2 minutes."
+
+      - alert: LLMHighLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(valerie_llm_latency_seconds_bucket[5m])) by (le, provider)) > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High LLM latency for {{ $labels.provider }}"
+          description: "LLM provider {{ $labels.provider }} 95th percentile latency is above 30 seconds."
+
+      - alert: LLMHighErrorRate
+        expr: |
+          sum(rate(valerie_llm_requests_total{status="error"}[5m])) by (provider)
+          / sum(rate(valerie_llm_requests_total[5m])) by (provider) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High LLM error rate for {{ $labels.provider }}"
+          description: "LLM provider {{ $labels.provider }} error rate is above 10%."
+
+  # ==========================================================================
+  # Agent Alerts
+  # ==========================================================================
+  - name: valerie-agents
+    rules:
+      - alert: AgentHighErrorRate
+        expr: |
+          sum(rate(valerie_agent_invocations_total{status="error"}[5m])) by (agent_name)
+          / sum(rate(valerie_agent_invocations_total[5m])) by (agent_name) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate for agent {{ $labels.agent_name }}"
+          description: "Agent {{ $labels.agent_name }} has error rate above 20%."
+
+      - alert: AgentHighLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(valerie_agent_duration_seconds_bucket[5m])) by (le, agent_name)) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High latency for agent {{ $labels.agent_name }}"
+          description: "Agent {{ $labels.agent_name }} 95th percentile latency is above 5 seconds."
+
+  # ==========================================================================
+  # Session Alerts
+  # ==========================================================================
+  - name: valerie-sessions
+    rules:
+      - alert: HighActiveSessions
+        expr: valerie_active_sessions > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of active sessions"
+          description: "There are {{ $value }} active sessions, which may indicate high load."
+
+  # ==========================================================================
+  # Infrastructure Alerts
+  # ==========================================================================
+  - name: valerie-infrastructure
+    rules:
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis session store has been down for more than 1 minute."
+
+      - alert: HealthCheckUnhealthy
+        expr: valerie_health_check_status == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Component {{ $labels.component }} is unhealthy"
+          description: "Health check for {{ $labels.component }} has been failing for 2 minutes."

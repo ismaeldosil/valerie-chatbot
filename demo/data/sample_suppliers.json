@@ -1,0 +1,121 @@
+{
+  "suppliers": [
+    {
+      "id": "SUP-001",
+      "name": "AeroTech Surface Solutions",
+      "location": "Phoenix, AZ",
+      "processes": ["heat_treatment", "shot_peening", "passivation"],
+      "certifications": [
+        {"name": "Nadcap Heat Treating", "expiry": "2026-03-15", "status": "active"},
+        {"name": "AS9100D", "expiry": "2025-08-20", "status": "active"},
+        {"name": "ISO 9001:2015", "expiry": "2026-01-10", "status": "active"}
+      ],
+      "oem_approvals": ["Boeing", "Lockheed Martin", "Northrop Grumman"],
+      "quality_score": 0.95,
+      "delivery_score": 0.92,
+      "capacity_available": true,
+      "lead_time_days": 5,
+      "min_order_value": 500
+    },
+    {
+      "id": "SUP-002",
+      "name": "PrecisionCoat Industries",
+      "location": "Los Angeles, CA",
+      "processes": ["anodizing", "chemical_conversion", "passivation", "primer"],
+      "certifications": [
+        {"name": "Nadcap Chemical Processing", "expiry": "2025-11-30", "status": "active"},
+        {"name": "AS9100D", "expiry": "2026-02-15", "status": "active"},
+        {"name": "ITAR Registered", "expiry": "2025-12-31", "status": "active"}
+      ],
+      "oem_approvals": ["Boeing", "Raytheon", "General Dynamics"],
+      "quality_score": 0.91,
+      "delivery_score": 0.88,
+      "capacity_available": true,
+      "lead_time_days": 7,
+      "min_order_value": 750
+    },
+    {
+      "id": "SUP-003",
+      "name": "MetalTreat Aerospace",
+      "location": "Seattle, WA",
+      "processes": ["heat_treatment", "nitriding", "carburizing"],
+      "certifications": [
+        {"name": "Nadcap Heat Treating", "expiry": "2026-06-01", "status": "active"},
+        {"name": "AS9100D", "expiry": "2025-09-15", "status": "active"},
+        {"name": "Boeing D1-4426", "expiry": "2026-04-01", "status": "active"}
+      ],
+      "oem_approvals": ["Boeing", "Spirit AeroSystems"],
+      "quality_score": 0.97,
+      "delivery_score": 0.94,
+      "capacity_available": false,
+      "lead_time_days": 10,
+      "min_order_value": 1000
+    },
+    {
+      "id": "SUP-004",
+      "name": "SurfacePro Finishing",
+      "location": "Wichita, KS",
+      "processes": ["plating", "anodizing", "painting", "primer"],
+      "certifications": [
+        {"name": "Nadcap Coatings", "expiry": "2025-08-01", "status": "expiring_soon"},
+        {"name": "AS9100D", "expiry": "2026-01-20", "status": "active"}
+      ],
+      "oem_approvals": ["Textron", "Cessna"],
+      "quality_score": 0.85,
+      "delivery_score": 0.90,
+      "capacity_available": true,
+      "lead_time_days": 4,
+      "min_order_value": 300
+    },
+    {
+      "id": "SUP-005",
+      "name": "DefenseTech Coatings",
+      "location": "Huntsville, AL",
+      "processes": ["plasma_spray", "hvof", "thermal_barrier"],
+      "certifications": [
+        {"name": "Nadcap Thermal Spray", "expiry": "2026-09-01", "status": "active"},
+        {"name": "AS9100D", "expiry": "2026-05-15", "status": "active"},
+        {"name": "ITAR Registered", "expiry": "2025-12-31", "status": "active"},
+        {"name": "Secret Facility Clearance", "expiry": "2026-06-01", "status": "active"}
+      ],
+      "oem_approvals": ["Lockheed Martin", "Raytheon", "Northrop Grumman", "L3Harris"],
+      "quality_score": 0.98,
+      "delivery_score": 0.91,
+      "capacity_available": true,
+      "lead_time_days": 14,
+      "min_order_value": 2500
+    }
+  ],
+  "processes": {
+    "heat_treatment": {
+      "name": "Heat Treatment",
+      "description": "Thermal processing to alter material properties",
+      "specs": ["AMS 2750", "AMS 2759", "MIL-H-6875"],
+      "materials": ["Aluminum alloys", "Steel alloys", "Titanium", "Nickel superalloys"]
+    },
+    "anodizing": {
+      "name": "Anodizing",
+      "description": "Electrochemical process creating oxide layer",
+      "specs": ["MIL-A-8625", "AMS 2468", "AMS 2469"],
+      "materials": ["Aluminum alloys"]
+    },
+    "chemical_conversion": {
+      "name": "Chemical Conversion Coating",
+      "description": "Chromate or non-chromate conversion coating",
+      "specs": ["MIL-DTL-5541", "MIL-DTL-81706"],
+      "materials": ["Aluminum alloys", "Magnesium alloys"]
+    },
+    "shot_peening": {
+      "name": "Shot Peening",
+      "description": "Surface treatment to improve fatigue life",
+      "specs": ["AMS 2430", "AMS 2432", "MIL-S-13165"],
+      "materials": ["Steel", "Titanium", "Aluminum"]
+    },
+    "plating": {
+      "name": "Electroplating",
+      "description": "Metal deposition via electrochemical process",
+      "specs": ["AMS 2400", "QQ-N-290", "MIL-C-26074"],
+      "materials": ["Steel", "Copper alloys", "Aluminum"]
+    }
+  }
+}

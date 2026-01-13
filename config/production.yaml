@@ -1,0 +1,132 @@
+# Valerie Supplier Chatbot - Production Configuration
+# This file contains production-specific settings
+# Secrets should be provided via environment variables
+
+# =============================================================================
+# Application Settings
+# =============================================================================
+app:
+  name: "Valerie Supplier Chatbot"
+  version: "2.2.0"
+  environment: "production"
+  debug: false
+  log_level: "INFO"
+
+# =============================================================================
+# API Configuration
+# =============================================================================
+api:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4
+  timeout_seconds: 60
+  cors:
+    origins:
+      - "https://valerie.example.com"
+      - "https://app.valerie.example.com"
+    allow_credentials: true
+    allow_methods: ["GET", "POST", "DELETE"]
+    allow_headers: ["*"]
+
+# =============================================================================
+# LLM Configuration
+# =============================================================================
+# NOTE: Model names are centralized in config/model-registry.yaml
+# Use VALERIE_LLM_PROVIDER and VALERIE_MODEL_NAME env vars to override.
+# In code, use: from valerie.models import get_model_registry
+llm:
+  provider: ${VALERIE_LLM_PROVIDER:-anthropic}
+  model: ${VALERIE_MODEL_NAME:-}  # Empty = use model-registry.yaml default
+  temperature: 0.1
+  max_tokens: 4096
+  timeout_seconds: 30
+  retry:
+    max_attempts: 3
+    backoff_multiplier: 2
+
+# =============================================================================
+# Redis Configuration
+# =============================================================================
+redis:
+  url: "${VALERIE_REDIS_URL}"
+  session_ttl_seconds: 3600
+  connection_pool_size: 10
+  socket_timeout: 5
+
+# =============================================================================
+# Oracle Fusion Configuration
+# =============================================================================
+oracle:
+  base_url: "${VALERIE_ORACLE_BASE_URL}"
+  timeout_seconds: 30
+  cache:
+    enabled: true
+    ttl_seconds:
+      suppliers: 300       # 5 minutes
+      certifications: 600  # 10 minutes
+      pricing: 60          # 1 minute
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+security:
+  guardrails:
+    pii_detection: true
+    itar_detection: true
+    injection_protection: true
+    max_input_length: 5000
+  hitl:
+    enabled: true
+    timeout_hours: 24
+    high_risk_threshold: 0.7
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 60
+    requests_per_hour: 1000
+
+# =============================================================================
+# Observability Configuration
+# =============================================================================
+observability:
+  tracing:
+    enabled: true
+    provider: "langsmith"
+    sample_rate: 0.1
+  metrics:
+    enabled: true
+    export_interval_seconds: 60
+  logging:
+    format: "json"
+    include_trace_id: true
+
+# =============================================================================
+# Circuit Breaker Configuration
+# =============================================================================
+resilience:
+  circuit_breaker:
+    failure_threshold: 5
+    recovery_timeout_seconds: 60
+    half_open_max_calls: 3
+  fallback:
+    enabled: true
+    graceful_degradation: true
+
+# =============================================================================
+# Agent Configuration
+# =============================================================================
+agents:
+  orchestrator:
+    max_iterations: 10
+    timeout_seconds: 60
+  intent_classifier:
+    confidence_threshold: 0.7
+  supplier_search:
+    max_results: 20
+    default_limit: 10
+  compliance:
+    cache_ttl_seconds: 300
+  risk_assessment:
+    risk_threshold: 0.7
+  evaluation:
+    enabled: true
+    sample_rate: 0.1

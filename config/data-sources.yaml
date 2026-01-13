@@ -1,0 +1,40 @@
+# Data Source Configuration
+# ========================
+# This file configures which data source Valerie uses for supplier data.
+# The active environment is determined by the VALERIE_ENV environment variable.
+
+default: development
+
+environments:
+  # Development: Uses local SQLite database
+  development:
+    type: sqlite
+    sqlite_path: data/valerie.db
+
+  # Testing: Uses mock data source
+  testing:
+    type: mock
+
+  # Staging: Connects to staging API
+  staging:
+    type: api
+    api_base_url: ${VALENCE_API_URL}
+    api_key: ${VALENCE_API_KEY}
+    timeout: 30
+    retry_attempts: 3
+
+  # Production: Connects to production API
+  production:
+    type: api
+    api_base_url: ${VALENCE_API_URL}
+    api_key: ${VALENCE_API_KEY}
+    timeout: 30
+    retry_attempts: 3
+
+  # Oracle Fusion: Direct connection to Oracle (alternative production setup)
+  oracle:
+    type: oracle
+    oracle_base_url: ${ORACLE_FUSION_URL}
+    oracle_client_id: ${ORACLE_CLIENT_ID}
+    oracle_client_secret: ${ORACLE_CLIENT_SECRET}
+    timeout: 60

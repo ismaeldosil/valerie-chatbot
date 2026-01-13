@@ -1,0 +1,1116 @@
+# Agent Registry
+# Valerie Supplier Recommendation Chatbot
+# Central registry of all agents in the system
+# Updated with 2025 Best Practices: Guardrails, HITL, Observability, Fallback, Evaluation
+
+version: "2.0.0"
+last_updated: "2025-12-20"
+
+# =============================================================================
+# Product Agents (Chatbot)
+# =============================================================================
+
+product_agents:
+
+  # ---------------------------------------------------------------------------
+  # Orchestrator Agent
+  # ---------------------------------------------------------------------------
+  orchestrator:
+    id: prod-001
+    name: Orchestrator
+    type: coordinator
+    layer: product
+    status: active
+
+    description: |
+      Central coordinator that routes requests, manages conversation flow,
+      and orchestrates multi-agent interactions.
+
+    prompt_file: agents/product/01-orchestrator.md
+
+    capabilities:
+      - request_routing
+      - agent_coordination
+      - conversation_management
+      - error_recovery
+
+    dependencies:
+      required:
+        - intent_classifier
+        - response_generation
+        - memory_context
+      optional:
+        - supplier_search
+        - compliance_validation
+        - supplier_comparison
+        - risk_assessment
+        - process_expertise
+        - oracle_fusion
+
+    configuration:
+      timeout_ms: 5000
+      max_retries: 2
+      priority: critical
+
+    metrics:
+      - routing_accuracy
+      - latency_p50
+      - latency_p95
+      - error_rate
+      - throughput
+
+  # ---------------------------------------------------------------------------
+  # Intent Classifier Agent
+  # ---------------------------------------------------------------------------
+  intent_classifier:
+    id: prod-002
+    name: Intent Classifier
+    type: classifier
+    layer: product
+    status: active
+
+    description: |
+      Classifies user intents, extracts entities, and identifies
+      ambiguities requiring clarification.
+
+    prompt_file: agents/product/02-intent-classifier.md
+
+    capabilities:
+      - intent_classification
+      - entity_extraction
+      - ambiguity_detection
+      - multi_language_support
+
+    dependencies:
+      required: []
+      optional:
+        - memory_context
+
+    configuration:
+      timeout_ms: 3000
+      max_retries: 2
+      confidence_threshold: 0.7
+      supported_locales:
+        - en-US
+        - es-ES
+        - es-MX
+
+    metrics:
+      - classification_accuracy
+      - precision
+      - recall
+      - f1_score
+      - latency
+
+  # ---------------------------------------------------------------------------
+  # Supplier Search Agent
+  # ---------------------------------------------------------------------------
+  supplier_search:
+    id: prod-003
+    name: Supplier Search
+    type: retriever
+    layer: product
+    status: active
+
+    description: |
+      Searches, filters, and ranks suppliers based on user criteria
+      including process capabilities, certifications, and performance.
+
+    prompt_file: agents/product/03-supplier-search.md
+
+    capabilities:
+      - supplier_search
+      - criteria_matching
+      - result_ranking
+      - query_expansion
+
+    dependencies:
+      required:
+        - oracle_fusion
+      optional:
+        - memory_context
+        - compliance_validation
+
+    configuration:
+      timeout_ms: 10000
+      max_retries: 3
+      default_limit: 10
+      max_limit: 50
+      cache_ttl_seconds: 1800
+
+    metrics:
+      - search_relevance
+      - result_count
+      - latency_p95
+      - cache_hit_rate
+
+  # ---------------------------------------------------------------------------
+  # Compliance Validation Agent
+  # ---------------------------------------------------------------------------
+  compliance_validation:
+    id: prod-004
+    name: Compliance Validation
+    type: validator
+    layer: product
+    status: active
+
+    description: |
+      Validates supplier certifications, program approvals, and
+      regulatory compliance status.
+
+    prompt_file: agents/product/04-compliance-validation.md
+
+    capabilities:
+      - certification_validation
+      - program_approval_check
+      - expiration_monitoring
+      - scope_matching
+
+    dependencies:
+      required:
+        - oracle_fusion
+      optional: []
+
+    configuration:
+      timeout_ms: 8000
+      max_retries: 2
+      expiration_thresholds:
+        critical_days: 30
+        warning_days: 90
+        caution_days: 180
+
+    metrics:
+      - validation_accuracy
+      - false_positive_rate
+      - alert_timeliness
+      - latency
+
+  # ---------------------------------------------------------------------------
+  # Supplier Comparison Agent
+  # ---------------------------------------------------------------------------
+  supplier_comparison:
+    id: prod-005
+    name: Supplier Comparison
+    type: analyzer
+    layer: product
+    status: active
+
+    description: |
+      Compares multiple suppliers across quality, delivery, cost,
+      capacity, compliance, and risk dimensions.
+
+    prompt_file: agents/product/05-supplier-comparison.md
+
+    capabilities:
+      - multi_supplier_comparison
+      - dimension_scoring
+      - recommendation_generation
+      - visualization_data
+
+    dependencies:
+      required:
+        - oracle_fusion
+      optional:
+        - compliance_validation
+        - risk_assessment
+
+    configuration:
+      timeout_ms: 12000
+      max_retries: 1
+      max_suppliers: 5
+      min_suppliers: 2
+
+    metrics:
+      - recommendation_accuracy
+      - decision_quality
+      - latency
+
+  # ---------------------------------------------------------------------------
+  # Oracle Fusion Integration Agent
+  # ---------------------------------------------------------------------------
+  oracle_fusion:
+    id: prod-006
+    name: Oracle Fusion Integration
+    type: data_source
+    layer: product
+    status: active
+
+    description: |
+      Gateway to Oracle Fusion Cloud ERP for supplier data,
+      performance metrics, and transactional information.
+
+    prompt_file: agents/product/06-oracle-fusion-integration.md
+
+    capabilities:
+      - supplier_data_retrieval
+      - performance_metrics
+      - order_history
+      - qualification_lookup
+
+    dependencies:
+      required: []
+      optional: []
+
+    configuration:
+      timeout_ms: 10000
+      max_retries: 3
+      rate_limit_rpm: 60
+      cache_enabled: true
+      cache_ttl:
+        supplier_master: 86400
+        qualifications: 43200
+        performance: 3600
+        transactions: 0
+
+    external_dependencies:
+      - name: Oracle Fusion Cloud
+        type: erp
+        url: https://valeriesurface.fa.us2.oraclecloud.com
+        auth: oauth2
+
+    metrics:
+      - api_latency_p50
+      - api_latency_p95
+      - cache_hit_rate
+      - error_rate
+      - rate_limit_hits
+
+  # ---------------------------------------------------------------------------
+  # Process Expertise Agent
+  # ---------------------------------------------------------------------------
+  process_expertise:
+    id: prod-007
+    name: Process Expertise
+    type: knowledge
+    layer: product
+    status: active
+
+    description: |
+      Subject matter expert for aerospace surface finishing processes,
+      specifications, and technical requirements.
+
+    prompt_file: agents/product/07-process-expertise.md
+
+    capabilities:
+      - process_recommendation
+      - specification_explanation
+      - material_compatibility
+      - process_comparison
+
+    dependencies:
+      required: []
+      optional:
+        - memory_context
+
+    configuration:
+      timeout_ms: 10000
+      max_retries: 2
+
+    knowledge_bases:
+      - specifications
+      - processes
+      - materials
+      - oem_mappings
+
+    metrics:
+      - technical_accuracy
+      - response_completeness
+      - user_satisfaction
+      - latency
+
+  # ---------------------------------------------------------------------------
+  # Risk Assessment Agent
+  # ---------------------------------------------------------------------------
+  risk_assessment:
+    id: prod-008
+    name: Risk Assessment
+    type: analyzer
+    layer: product
+    status: active
+
+    description: |
+      Evaluates and quantifies supply chain risks across compliance,
+      capacity, financial, geographic, dependency, and quality dimensions.
+
+    prompt_file: agents/product/08-risk-assessment.md
+
+    capabilities:
+      - risk_scoring
+      - trend_analysis
+      - mitigation_recommendation
+      - monitoring_scheduling
+
+    dependencies:
+      required:
+        - oracle_fusion
+      optional:
+        - compliance_validation
+
+    configuration:
+      timeout_ms: 15000
+      max_retries: 2
+      risk_weights:
+        compliance: 0.25
+        capacity: 0.15
+        financial: 0.15
+        geographic: 0.10
+        dependency: 0.20
+        quality: 0.15
+
+    metrics:
+      - prediction_accuracy
+      - assessment_latency
+      - coverage
+      - mitigation_implementation_rate
+
+  # ---------------------------------------------------------------------------
+  # Response Generation Agent
+  # ---------------------------------------------------------------------------
+  response_generation:
+    id: prod-009
+    name: Response Generation
+    type: formatter
+    layer: product
+    status: active
+
+    description: |
+      Transforms structured data into natural, conversational responses
+      appropriate for the user's context and preferences.
+
+    prompt_file: agents/product/09-response-generation.md
+
+    capabilities:
+      - response_formatting
+      - template_selection
+      - personalization
+      - localization
+
+    dependencies:
+      required: []
+      optional:
+        - memory_context
+
+    configuration:
+      timeout_ms: 5000
+      max_retries: 2
+      max_response_words: 500
+      max_table_rows: 10
+      include_followups: true
+      max_followups: 3
+
+    metrics:
+      - clarity_score
+      - completeness
+      - user_satisfaction
+      - format_accuracy
+      - latency
+
+  # ---------------------------------------------------------------------------
+  # Memory & Context Agent
+  # ---------------------------------------------------------------------------
+  memory_context:
+    id: prod-010
+    name: Memory & Context
+    type: utility
+    layer: product
+    status: active
+
+    description: |
+      Maintains conversation state, resolves references, and ensures
+      contextual continuity across multi-turn conversations.
+
+    prompt_file: agents/product/10-memory-context.md
+
+    capabilities:
+      - session_management
+      - reference_resolution
+      - entity_tracking
+      - context_persistence
+
+    dependencies:
+      required: []
+      optional: []
+
+    configuration:
+      timeout_ms: 2000
+      max_retries: 1
+      session_ttl_seconds: 86400
+      max_turns: 100
+      context_decay_turns: 10
+      cross_session_retention_days: 90
+
+    storage:
+      backend: redis
+      serialization: json
+
+    metrics:
+      - resolution_accuracy
+      - ambiguity_detection_rate
+      - latency
+      - session_persistence
+
+# =============================================================================
+# Infrastructure Agents (2025 Best Practices)
+# =============================================================================
+
+infrastructure_agents:
+
+  # ---------------------------------------------------------------------------
+  # Guardrails Agent
+  # ---------------------------------------------------------------------------
+  guardrails:
+    id: infra-011
+    name: Guardrails
+    type: security
+    layer: infrastructure
+    status: active
+
+    description: |
+      Security gateway for input validation, prompt injection detection,
+      PII protection, ITAR compliance, and output sanitization.
+
+    prompt_file: agents/11-guardrails.md
+
+    capabilities:
+      - prompt_injection_detection
+      - pii_detection
+      - pii_redaction
+      - itar_screening
+      - content_safety
+      - input_sanitization
+      - output_validation
+
+    dependencies:
+      required: []
+      optional: []
+
+    configuration:
+      timeout_ms: 1000
+      max_retries: 1
+      priority: critical
+
+      defense_layers:
+        - name: regex
+          latency_ms: 1
+        - name: ml_classifier
+          latency_ms: 50
+        - name: llm_analysis
+          latency_ms: 2000
+        - name: human_review
+          trigger: "confidence < 0.6"
+
+      pii_patterns:
+        - ssn
+        - credit_card
+        - tax_id
+        - email
+        - phone
+
+      itar_keywords:
+        - itar
+        - export_control
+        - classified
+        - defense_article
+
+    metrics:
+      - injection_detection_rate
+      - false_positive_rate
+      - pii_redaction_accuracy
+      - latency_p95
+
+  # ---------------------------------------------------------------------------
+  # Human-in-the-Loop Agent
+  # ---------------------------------------------------------------------------
+  human_in_the_loop:
+    id: infra-012
+    name: Human-in-the-Loop
+    type: approval
+    layer: infrastructure
+    status: active
+
+    description: |
+      Manages approval workflows, escalation requests, and human oversight
+      for decisions requiring authorization or confirmation.
+
+    prompt_file: agents/12-human-in-the-loop.md
+
+    capabilities:
+      - approval_workflow
+      - escalation_management
+      - notification_dispatch
+      - audit_logging
+      - checkpoint_management
+
+    dependencies:
+      required: []
+      optional:
+        - observability
+
+    configuration:
+      timeout_ms: 86400000  # 24 hours
+      checkpoint_enabled: true
+      priority: high
+
+      approval_workflows:
+        supplier_approval:
+          default_timeout_minutes: 240
+          escalation_levels: 3
+        high_value_purchase:
+          thresholds:
+            - amount: 100000
+              approvers: ["procurement_manager"]
+            - amount: 500000
+              approvers: ["procurement_director"]
+            - amount: 1000000
+              approvers: ["vp_supply_chain", "cfo"]
+        itar_decision:
+          require_dual_approval: true
+          max_timeout_minutes: 240
+
+      notification_channels:
+        - email
+        - slack
+        - in_app
+
+    metrics:
+      - response_time_p50
+      - approval_rate
+      - escalation_rate
+      - timeout_rate
+      - sla_compliance
+
+  # ---------------------------------------------------------------------------
+  # Observability Agent
+  # ---------------------------------------------------------------------------
+  observability:
+    id: infra-013
+    name: Observability
+    type: monitoring
+    layer: infrastructure
+    status: active
+
+    description: |
+      Provides distributed tracing, structured logging, metrics collection,
+      and debugging support for all agent operations.
+
+    prompt_file: agents/13-observability.md
+
+    capabilities:
+      - distributed_tracing
+      - structured_logging
+      - metrics_collection
+      - reasoning_capture
+      - state_replay
+      - debug_support
+
+    dependencies:
+      required: []
+      optional: []
+
+    configuration:
+      timeout_ms: 500
+      mode: parallel  # Runs alongside all nodes
+      priority: medium
+
+      tracing:
+        provider: langsmith
+        project: valerie-chatbot
+        sampling_rate: 1.0
+        capture_inputs: true
+        capture_outputs: true
+        redact_pii: true
+
+      logging:
+        format: json
+        level: INFO
+        include_trace_context: true
+
+      metrics:
+        provider: prometheus
+        port: 9090
+
+    external_dependencies:
+      - name: LangSmith
+        type: tracing
+        required: false
+      - name: Prometheus
+        type: metrics
+        required: true
+
+    metrics:
+      - trace_count
+      - trace_latency
+      - log_volume
+      - metric_cardinality
+
+  # ---------------------------------------------------------------------------
+  # Fallback & Recovery Agent
+  # ---------------------------------------------------------------------------
+  fallback_recovery:
+    id: infra-014
+    name: Fallback & Recovery
+    type: resilience
+    layer: infrastructure
+    status: active
+
+    description: |
+      Ensures system resilience through circuit breakers, retry policies,
+      fallback chains, and graceful degradation.
+
+    prompt_file: agents/14-fallback-recovery.md
+
+    capabilities:
+      - circuit_breaker
+      - retry_management
+      - fallback_execution
+      - graceful_degradation
+      - health_monitoring
+      - cache_fallback
+
+    dependencies:
+      required: []
+      optional:
+        - observability
+
+    configuration:
+      timeout_ms: 5000
+      priority: critical
+
+      circuit_breaker:
+        failure_threshold: 5
+        success_threshold: 2
+        timeout_seconds: 60
+        half_open_max_calls: 3
+
+      retry_policy:
+        max_attempts: 3
+        initial_delay_ms: 100
+        max_delay_ms: 10000
+        backoff_multiplier: 2.0
+        jitter: true
+
+      fallback:
+        use_cache: true
+        cache_max_age_seconds: 3600
+        graceful_degradation: true
+
+      degradation_levels:
+        - full
+        - partial
+        - minimal
+        - emergency
+
+    metrics:
+      - circuit_open_count
+      - retry_count
+      - fallback_usage_rate
+      - degradation_time
+      - recovery_time
+
+  # ---------------------------------------------------------------------------
+  # Evaluation Agent
+  # ---------------------------------------------------------------------------
+  evaluation:
+    id: infra-015
+    name: Evaluation
+    type: quality
+    layer: infrastructure
+    status: active
+
+    description: |
+      Assesses response quality using LLM-as-judge, automated metrics,
+      and human feedback integration for continuous improvement.
+
+    prompt_file: agents/15-evaluation.md
+
+    capabilities:
+      - llm_judge
+      - automated_metrics
+      - feedback_collection
+      - regression_testing
+      - training_data_generation
+      - quality_scoring
+
+    dependencies:
+      required: []
+      optional:
+        - observability
+
+    configuration:
+      timeout_ms: 3000
+      priority: low
+      run_async: true
+
+      # LLM Judge configuration
+      # Model name is centralized in config/model-registry.yaml
+      # Under: providers.anthropic.models.evaluation
+      llm_judge:
+        # Uses "evaluation" tier from model-registry.yaml
+        model: ${VALERIE_EVAL_MODEL:-}  # Empty = use registry evaluation tier
+        temperature: 0.0
+        max_tokens: 2000
+
+      evaluation_dimensions:
+        - name: relevance
+          weight: 0.25
+        - name: accuracy
+          weight: 0.25
+        - name: completeness
+          weight: 0.20
+        - name: actionability
+          weight: 0.15
+        - name: clarity
+          weight: 0.10
+        - name: safety
+          weight: 0.05
+
+      quality_thresholds:
+        min_acceptable: 0.6
+        training_candidate: 0.8
+        human_review_below: 0.5
+
+      feedback:
+        storage: postgresql
+        retention_days: 365
+
+    metrics:
+      - quality_score_avg
+      - grade_distribution
+      - user_satisfaction_rate
+      - correction_rate
+      - evaluation_latency
+
+# =============================================================================
+# Development Agents (Virtual Team)
+# =============================================================================
+
+development_agents:
+
+  # ---------------------------------------------------------------------------
+  # Dev Supervisor Agent
+  # ---------------------------------------------------------------------------
+  dev_supervisor:
+    id: dev-000
+    name: Dev Supervisor
+    type: validator
+    layer: development
+    status: active
+
+    description: |
+      Meta-validador that reviews outputs from all development agents,
+      ensuring quality and consistency.
+
+    prompt_file: agents/development/00-dev-supervisor.md
+
+    capabilities:
+      - code_review
+      - quality_validation
+      - consistency_checking
+      - escalation_management
+
+    validates:
+      - backend_developer
+      - frontend_developer
+      - devops_engineer
+      - qa_tester
+      - tech_writer
+
+  # ---------------------------------------------------------------------------
+  # Project Manager Agent
+  # ---------------------------------------------------------------------------
+  project_manager:
+    id: dev-001
+    name: Project Manager
+    type: coordinator
+    layer: development
+    status: active
+
+    description: |
+      Manages tickets, sprints, assignments, and tracks project progress.
+
+    prompt_file: agents/development/01-project-manager.md
+
+    capabilities:
+      - ticket_creation
+      - sprint_management
+      - assignment_routing
+      - progress_tracking
+
+    coordinates:
+      - architect
+      - backend_developer
+      - frontend_developer
+      - devops_engineer
+      - qa_tester
+      - tech_writer
+
+  # ---------------------------------------------------------------------------
+  # Architect Agent
+  # ---------------------------------------------------------------------------
+  architect:
+    id: dev-002
+    name: Architect
+    type: designer
+    layer: development
+    status: active
+
+    description: |
+      Makes technical decisions, designs APIs, and reviews architecture.
+
+    prompt_file: agents/development/02-architect.md
+
+    capabilities:
+      - technical_design
+      - api_design
+      - architecture_review
+      - trade_off_analysis
+
+    expertise:
+      - system_architecture
+      - langgraph_patterns
+      - oracle_fusion_integration
+      - security_compliance
+
+  # ---------------------------------------------------------------------------
+  # Backend Developer Agent
+  # ---------------------------------------------------------------------------
+  backend_developer:
+    id: dev-003
+    name: Backend Developer
+    type: implementer
+    layer: development
+    status: active
+
+    description: |
+      Implements backend services using Python, LangGraph, and FastAPI.
+
+    prompt_file: agents/development/03-backend-developer.md
+
+    capabilities:
+      - python_development
+      - langgraph_implementation
+      - api_development
+      - database_integration
+
+    stack:
+      - python_3.11
+      - langgraph
+      - fastapi
+      - pydantic_v2
+      - redis
+      - oracle_fusion_api
+
+  # ---------------------------------------------------------------------------
+  # Frontend Developer Agent
+  # ---------------------------------------------------------------------------
+  frontend_developer:
+    id: dev-004
+    name: Frontend Developer
+    type: implementer
+    layer: development
+    status: active
+
+    description: |
+      Implements chat interfaces and dashboards using React/Next.js.
+
+    prompt_file: agents/development/04-frontend-developer.md
+
+    capabilities:
+      - react_development
+      - typescript
+      - chat_ui
+      - data_visualization
+
+    stack:
+      - react_18
+      - nextjs_14
+      - typescript_5
+      - tailwindcss
+      - recharts
+
+  # ---------------------------------------------------------------------------
+  # DevOps Engineer Agent
+  # ---------------------------------------------------------------------------
+  devops_engineer:
+    id: dev-005
+    name: DevOps Engineer
+    type: operator
+    layer: development
+    status: active
+
+    description: |
+      Manages CI/CD, infrastructure, deployment, and monitoring.
+
+    prompt_file: agents/development/05-devops-engineer.md
+
+    capabilities:
+      - cicd_pipelines
+      - container_management
+      - infrastructure_as_code
+      - monitoring_setup
+
+    stack:
+      - docker
+      - kubernetes
+      - github_actions
+      - terraform
+      - prometheus
+      - grafana
+
+  # ---------------------------------------------------------------------------
+  # QA Tester Agent
+  # ---------------------------------------------------------------------------
+  qa_tester:
+    id: dev-006
+    name: QA Tester
+    type: validator
+    layer: development
+    status: active
+
+    description: |
+      Designs and executes tests, validates quality, and reports issues.
+
+    prompt_file: agents/development/06-qa-tester.md
+
+    capabilities:
+      - test_design
+      - test_automation
+      - quality_validation
+      - bug_reporting
+
+    testing_types:
+      - unit
+      - integration
+      - e2e
+      - performance
+      - regression
+
+  # ---------------------------------------------------------------------------
+  # Tech Writer Agent
+  # ---------------------------------------------------------------------------
+  tech_writer:
+    id: dev-007
+    name: Tech Writer
+    type: documenter
+    layer: development
+    status: active
+
+    description: |
+      Creates and maintains documentation including API docs, guides, and runbooks.
+
+    prompt_file: agents/development/07-tech-writer.md
+
+    capabilities:
+      - api_documentation
+      - user_guides
+      - technical_writing
+      - diagram_creation
+
+    doc_types:
+      - api_reference
+      - user_guides
+      - admin_guides
+      - runbooks
+      - adrs
+
+# =============================================================================
+# Agent Groups
+# =============================================================================
+
+groups:
+  core_pipeline:
+    description: "Essential agents for basic operation"
+    agents:
+      - orchestrator
+      - intent_classifier
+      - response_generation
+      - memory_context
+
+  search_pipeline:
+    description: "Agents for supplier search functionality"
+    agents:
+      - supplier_search
+      - oracle_fusion
+      - compliance_validation
+
+  analysis_pipeline:
+    description: "Agents for advanced analysis"
+    agents:
+      - supplier_comparison
+      - risk_assessment
+      - process_expertise
+
+  infrastructure_pipeline:
+    description: "Infrastructure agents for security, resilience, and quality"
+    agents:
+      - guardrails
+      - human_in_the_loop
+      - observability
+      - fallback_recovery
+      - evaluation
+
+  dev_team:
+    description: "Development team agents"
+    agents:
+      - project_manager
+      - architect
+      - backend_developer
+      - frontend_developer
+      - devops_engineer
+      - qa_tester
+      - tech_writer
+      - dev_supervisor
+
+# =============================================================================
+# Health Check Configuration
+# =============================================================================
+
+health_checks:
+  enabled: true
+  interval_seconds: 30
+
+  checks:
+    - agent: "*"
+      type: heartbeat
+      timeout_ms: 5000
+
+    - agent: oracle_fusion
+      type: connectivity
+      endpoint: /health
+      timeout_ms: 10000
+
+    - agent: memory_context
+      type: redis_ping
+      timeout_ms: 2000
+
+  alerts:
+    unhealthy_threshold: 3
+    notification_channels:
+      - slack_ops
+      - pagerduty
+
+# =============================================================================
+# Versioning
+# =============================================================================
+
+versioning:
+  strategy: semantic
+  current_versions:
+    product_agents: "2.0.0"
+    infrastructure_agents: "1.0.0"
+    development_agents: "1.0.0"
+    contracts: "2.0.0"
+
+  compatibility:
+    min_supported: "1.0.0"
+    deprecation_notice_versions: 2
+
+  changelog:
+    "2.0.0":
+      date: "2025-12-20"
+      changes:
+        - "Added 5 infrastructure agents (Guardrails, HITL, Observability, Fallback, Evaluation)"
+        - "Updated LangGraph flow to include security and quality gates"
+        - "Added HITL triggers for compliance and risk decisions"
+        - "Integrated LangSmith tracing"
+        - "Added circuit breaker and fallback patterns"

@@ -1,0 +1,82 @@
+# Valerie Supplier Chatbot - Langfuse Self-Hosted Stack
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.langfuse.yml up -d
+#
+# Langfuse provides LLM observability with:
+#   - Trace visualization
+#   - Cost tracking
+#   - Prompt management
+#   - Evaluation scoring
+#
+# Access:
+#   - Langfuse UI: http://localhost:3002
+#   - Default login: Create account on first access
+
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Langfuse Server
+  # ==========================================================================
+  langfuse-server:
+    image: langfuse/langfuse:2
+    container_name: valerie-langfuse
+    ports:
+      - "3002:3000"
+    environment:
+      # Database
+      - DATABASE_URL=postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+      # Auth
+      - NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET:-your-nextauth-secret-min-32-chars-long}
+      - NEXTAUTH_URL=http://localhost:3002
+      - SALT=${LANGFUSE_SALT:-your-salt-min-32-chars-long}
+      # Optional: Disable telemetry
+      - TELEMETRY_ENABLED=false
+      # Optional: Enable sign-up (set to false after initial setup)
+      - AUTH_DISABLE_SIGNUP=${LANGFUSE_DISABLE_SIGNUP:-false}
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/public/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - valerie-network
+
+  # ==========================================================================
+  # Langfuse PostgreSQL Database
+  # ==========================================================================
+  langfuse-db:
+    image: postgres:15-alpine
+    container_name: valerie-langfuse-db
+    environment:
+      - POSTGRES_USER=langfuse
+      - POSTGRES_PASSWORD=langfuse
+      - POSTGRES_DB=langfuse
+    volumes:
+      - langfuse-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse -d langfuse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - valerie-network
+
+# ==========================================================================
+# Networks (extends base network)
+# ==========================================================================
+networks:
+  valerie-network:
+    external: true
+    name: valerie-chatbot_valerie-network
+
+# ==========================================================================
+# Volumes
+# ==========================================================================
+volumes:
+  langfuse-db-data:

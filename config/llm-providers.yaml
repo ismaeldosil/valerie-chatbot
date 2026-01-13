@@ -1,0 +1,125 @@
+# LLM Providers Configuration
+# Valerie Supplier Chatbot v2.5
+#
+# =============================================================================
+# IMPORTANT: Model names are centralized in config/model-registry.yaml
+# =============================================================================
+# This file contains provider-specific settings (URLs, rate limits, etc.)
+# For model names and agent assignments, edit model-registry.yaml instead.
+# In Python code, use: from valerie.models import get_model_registry
+
+# Default provider to use (can override with VALERIE_LLM_PROVIDER env var)
+# Options: ollama (local, free), groq (cloud, free tier), anthropic (cloud, paid)
+default_provider: ollama
+
+# Fallback chain: if primary fails, try these in order
+# Also defined in model-registry.yaml: defaults.fallback_chain
+fallback_chain:
+  - ollama   # Try local first (free)
+  - groq     # Then cloud free tier
+  - anthropic # Finally paid API
+
+# Provider-specific configurations
+# NOTE: Model names here are defaults. Use model-registry.yaml for centralized control.
+providers:
+  # Ollama - Local LLM execution (completely free)
+  # Install: curl -fsSL https://ollama.com/install.sh | sh
+  # Pull model: ollama pull llama3.2
+  ollama:
+    enabled: true
+    base_url: http://localhost:11434
+    model: llama3.2           # Options: llama3.2, mistral, phi3, gemma2
+    timeout_seconds: 120
+    # Recommended models by use case:
+    #   - llama3.2:3b   - Fast, lightweight (3GB RAM)
+    #   - llama3.2      - Balanced (8GB RAM)
+    #   - llama3.2:70b  - Best quality (40GB RAM)
+    #   - mistral       - Good for code
+
+  # Groq - Ultra-fast cloud inference (free tier available)
+  # Get API key: https://console.groq.com/
+  # Free limits: 30 req/min, 14,400 req/day
+  groq:
+    enabled: true
+    model: llama-3.3-70b-versatile
+    timeout_seconds: 60
+    # Available models:
+    #   - llama-3.3-70b-versatile  - Best quality (recommended)
+    #   - llama-3.1-8b-instant     - Faster
+    #   - mixtral-8x7b-32768       - Good for long context
+    #   - gemma2-9b-it             - Efficient
+
+  # Google Gemini - Free tier available
+  # Get API key: https://aistudio.google.com/
+  # Free limits: 15 req/min, 1,500 req/day, 1M tokens/day
+  gemini:
+    enabled: false  # Coming soon
+    model: gemini-1.5-flash
+    timeout_seconds: 60
+
+  # Anthropic Claude - Paid API
+  # Get API key: https://console.anthropic.com/
+  anthropic:
+    enabled: true
+    model: claude-sonnet-4-20250514
+    timeout_seconds: 120
+    # Available models:
+    #   - claude-sonnet-4-20250514   - Best balance
+    #   - claude-opus-4-20250514     - Highest quality
+    #   - claude-3-5-haiku-20241022  - Fastest
+
+# Model selection by agent type
+# =============================================================================
+# DEPRECATED: Use config/model-registry.yaml instead
+# =============================================================================
+# Agent assignments are now managed in model-registry.yaml under agent_assignments
+# The section below is kept for backward compatibility only.
+agent_models:
+  # Agents that need high reasoning
+  high_quality:
+    - orchestrator
+    - risk_assessment
+    - compliance_validation
+    model_override:
+      ollama: llama3.2:70b
+      groq: llama-3.1-70b-versatile
+      anthropic: claude-opus-4-20250514
+
+  # Agents that need speed
+  fast:
+    - intent_classifier
+    - guardrails
+    model_override:
+      ollama: llama3.2:3b
+      groq: llama-3.1-8b-instant
+      anthropic: claude-3-5-haiku-20241022
+
+  # Default for other agents
+  standard:
+    - supplier_search
+    - supplier_comparison
+    - process_expertise
+    - response_generation
+    - memory_context
+    model_override: null  # Use default
+
+# Rate limiting configuration
+rate_limits:
+  groq:
+    requests_per_minute: 30
+    requests_per_day: 14400
+    retry_after_seconds: 60
+  gemini:
+    requests_per_minute: 15
+    requests_per_day: 1500
+    retry_after_seconds: 60
+  anthropic:
+    requests_per_minute: 60
+    retry_after_seconds: 30
+
+# Monitoring
+monitoring:
+  log_provider_usage: true
+  log_model_usage: true
+  log_token_usage: true
+  track_costs: true  # Only relevant for paid providers

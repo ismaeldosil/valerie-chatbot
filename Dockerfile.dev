@@ -1,0 +1,28 @@
+# Valerie Supplier Chatbot - Development Dockerfile
+# Optimized for hot-reload development
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Set environment variables
+ENV PYTHONPATH=/app/src
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Source code is mounted as volume in docker-compose.dev.yml
+# This allows for hot-reload during development
+
+EXPOSE 8000
+
+CMD ["uvicorn", "valerie_supplier_chatbot.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

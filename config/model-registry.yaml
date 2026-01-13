@@ -1,0 +1,225 @@
+# =============================================================================
+# Model Registry - Centralized LLM Configuration
+# =============================================================================
+# This is the SINGLE SOURCE OF TRUTH for all model configurations.
+# All other config files should reference this registry.
+#
+# To change models globally, update ONLY this file.
+# =============================================================================
+
+version: "1.0.0"
+description: "Centralized model configuration for Valerie Supplier Chatbot"
+
+# =============================================================================
+# Provider Definitions
+# =============================================================================
+# Each provider has multiple model tiers for different use cases.
+# Tiers: default (balanced), fast (speed), quality (best), evaluation (judging)
+
+providers:
+  # ---------------------------------------------------------------------------
+  # Anthropic (Cloud - Paid)
+  # ---------------------------------------------------------------------------
+  anthropic:
+    enabled: true
+    base_url: "https://api.anthropic.com"
+    api_key_env: "VALERIE_ANTHROPIC_API_KEY"
+
+    models:
+      default: "claude-sonnet-4-20250514"      # Balanced performance/cost
+      fast: "claude-3-5-haiku-20241022"        # Speed optimized
+      quality: "claude-opus-4-20250514"        # Highest quality
+      evaluation: "claude-3-5-sonnet-20241022" # For LLM-as-judge
+      legacy: "claude-3-5-sonnet-20241022"     # Backward compatibility
+
+  # ---------------------------------------------------------------------------
+  # Ollama (Local - Free)
+  # ---------------------------------------------------------------------------
+  ollama:
+    enabled: true
+    base_url_env: "VALERIE_OLLAMA_BASE_URL"
+    base_url_default: "http://localhost:11434"
+
+    models:
+      default: "llama3.2"          # Balanced (8GB RAM)
+      fast: "llama3.2:3b"          # Speed optimized (3GB RAM)
+      quality: "llama3.2:70b"      # Highest quality (40GB RAM)
+      evaluation: "llama3.2"       # For LLM-as-judge
+      code: "codellama"            # Code specialized
+
+  # ---------------------------------------------------------------------------
+  # Groq (Cloud - Free Tier)
+  # ---------------------------------------------------------------------------
+  groq:
+    enabled: true
+    base_url: "https://api.groq.com/openai/v1"
+    api_key_env: "VALERIE_GROQ_API_KEY"
+    rate_limits:
+      requests_per_minute: 30
+      requests_per_day: 14400
+
+    models:
+      default: "llama-3.3-70b-versatile"  # Best quality
+      fast: "llama-3.1-8b-instant"        # Speed optimized
+      quality: "llama-3.3-70b-versatile"  # Same as default (best available)
+      evaluation: "llama-3.3-70b-versatile"
+      long_context: "mixtral-8x7b-32768"  # 32k context
+
+  # ---------------------------------------------------------------------------
+  # Google Gemini (Cloud - Free Tier Available)
+  # ---------------------------------------------------------------------------
+  gemini:
+    enabled: true
+    base_url: "https://generativelanguage.googleapis.com/v1beta"
+    api_key_env: "VALERIE_GEMINI_API_KEY"
+    rate_limits:
+      requests_per_minute: 15
+      tokens_per_minute: 1000000
+
+    models:
+      default: "gemini-1.5-flash"        # Fast and efficient
+      fast: "gemini-1.5-flash-8b"        # Fastest
+      quality: "gemini-1.5-pro"          # Most capable, 2M context
+      evaluation: "gemini-1.5-flash"     # For LLM-as-judge
+      experimental: "gemini-2.0-flash-exp"  # Latest experimental
+
+# =============================================================================
+# Default Provider Selection
+# =============================================================================
+# Which provider to use by default (can be overridden by VALERIE_LLM_PROVIDER)
+
+defaults:
+  provider: "ollama"                    # Default provider (free, local)
+  fallback_chain: ["ollama", "groq", "gemini", "anthropic"]  # Fallback order
+
+# =============================================================================
+# Environment Contexts
+# =============================================================================
+# Different environments may use different providers/tiers
+
+environments:
+  development:
+    provider: "ollama"
+    model_tier: "fast"
+    description: "Fast local models for development"
+
+  staging:
+    provider: "anthropic"
+    model_tier: "default"
+    description: "Production-like with balanced models"
+
+  production:
+    provider: "anthropic"
+    model_tier: "default"
+    description: "Production with best balance of quality/cost"
+
+  testing:
+    provider: "ollama"
+    model_tier: "fast"
+    description: "Fast models for CI/CD testing"
+
+# =============================================================================
+# Agent Model Assignments
+# =============================================================================
+# Maps each agent to a model tier based on its requirements.
+# Agents can be grouped by their computational needs.
+
+agent_assignments:
+  # ---------------------------------------------------------------------------
+  # High Quality Tier - Complex reasoning, critical decisions
+  # ---------------------------------------------------------------------------
+  quality:
+    description: "Agents requiring high reasoning capability"
+    model_tier: "quality"
+    agents:
+      - orchestrator
+      - risk_assessment
+      - compliance_validation
+      - supplier_comparison
+
+  # ---------------------------------------------------------------------------
+  # Fast Tier - Speed critical, simpler tasks
+  # ---------------------------------------------------------------------------
+  fast:
+    description: "Agents requiring fast response times"
+    model_tier: "fast"
+    agents:
+      - intent_classifier
+      - guardrails
+      - memory_context
+
+  # ---------------------------------------------------------------------------
+  # Standard Tier - Balanced performance
+  # ---------------------------------------------------------------------------
+  standard:
+    description: "Agents with balanced requirements"
+    model_tier: "default"
+    agents:
+      - supplier_search
+      - process_expertise
+      - response_generation
+      - oracle_fusion
+
+  # ---------------------------------------------------------------------------
+  # Evaluation Tier - LLM-as-Judge tasks
+  # ---------------------------------------------------------------------------
+  evaluation:
+    description: "Agents that evaluate/judge other outputs"
+    model_tier: "evaluation"
+    agents:
+      - evaluation
+      - dev_supervisor
+
+# =============================================================================
+# Model Parameters by Tier
+# =============================================================================
+# Default parameters for each tier (can be overridden per-agent)
+
+parameters:
+  quality:
+    temperature: 0.1
+    max_tokens: 4096
+    timeout_seconds: 120
+
+  default:
+    temperature: 0.1
+    max_tokens: 4096
+    timeout_seconds: 60
+
+  fast:
+    temperature: 0.0
+    max_tokens: 1024
+    timeout_seconds: 30
+
+  evaluation:
+    temperature: 0.0
+    max_tokens: 2000
+    timeout_seconds: 60
+
+# =============================================================================
+# Agent-Specific Overrides
+# =============================================================================
+# Fine-grained control for specific agents that need custom settings
+
+agent_overrides:
+  intent_classifier:
+    temperature: 0.0
+    max_tokens: 512
+
+  response_generation:
+    temperature: 0.3
+    max_tokens: 2048
+
+  process_expertise:
+    temperature: 0.2
+    max_tokens: 4096
+
+# =============================================================================
+# Feature Flags
+# =============================================================================
+
+features:
+  streaming_enabled: true
+  caching_enabled: true
+  fallback_enabled: true
+  cost_tracking_enabled: true

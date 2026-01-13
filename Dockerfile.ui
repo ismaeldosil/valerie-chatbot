@@ -1,0 +1,40 @@
+# Valerie Chatbot UI - Streamlit Dockerfile
+# For Railway deployment of the demo interface
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+COPY pyproject.toml .
+COPY README.md .
+COPY src/ ./src/
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir .
+
+# Copy demo application
+COPY demo/ ./demo/
+COPY config/ ./config/
+COPY run_ui.py .
+
+# Set Python path
+ENV PYTHONPATH=/app/src
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Streamlit configuration
+ENV STREAMLIT_SERVER_HEADLESS=true
+ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+
+# Expose default Streamlit port (Railway will override with PORT)
+EXPOSE 8501
+
+# Run the UI
+CMD ["python", "run_ui.py"]

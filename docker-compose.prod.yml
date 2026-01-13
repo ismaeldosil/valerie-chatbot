@@ -1,0 +1,303 @@
+# Valerie Supplier Chatbot - Production Docker Compose
+# ============================================================================
+#
+# USAGE:
+#   docker-compose -f docker-compose.prod.yml up -d
+#
+# FEATURES:
+#   - Multiple API replicas with load balancing
+#   - Redis for session persistence
+#   - Prometheus + Grafana for observability
+#   - Langfuse for LLM tracing (optional)
+#   - Resource limits and health checks
+#
+# PORTS:
+#   - 8000: API (load balanced)
+#   - 6379: Redis
+#   - 9090: Prometheus
+#   - 3001: Grafana (admin/valerie123)
+#   - 3002: Langfuse
+#
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Nginx Load Balancer
+  # ==========================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: valerie-nginx
+    ports:
+      - "8000:80"
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - valerie-prod-network
+
+  # ==========================================================================
+  # API Service (Replicated)
+  # ==========================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    environment:
+      # Environment
+      - VALERIE_ENV=production
+      # LLM Configuration
+      - VALERIE_LLM_PROVIDER=${VALERIE_LLM_PROVIDER:-anthropic}
+      - VALERIE_USE_PAID_LLM=true
+      - VALERIE_ANTHROPIC_API_KEY=${VALERIE_ANTHROPIC_API_KEY}
+      - VALERIE_GROQ_API_KEY=${VALERIE_GROQ_API_KEY:-}
+      # AWS Bedrock (optional)
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+      # Azure OpenAI (optional)
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY:-}
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-}
+      - AZURE_OPENAI_DEPLOYMENT_NAME=${AZURE_OPENAI_DEPLOYMENT_NAME:-}
+      # Session Storage (Redis)
+      - VALERIE_SESSION_STORE=redis
+      - VALERIE_SESSION_REDIS_URL=redis://redis:6379
+      - VALERIE_SESSION_TTL=${VALERIE_SESSION_TTL:-3600}
+      # Services
+      - VALERIE_ORACLE_BASE_URL=${VALERIE_ORACLE_BASE_URL:-http://oracle-mock:3000}
+      # Observability - Langfuse (production)
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_HOST=${LANGFUSE_HOST:-http://langfuse-server:3000}
+      # Security
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
+      - JWT_EXPIRATION_MINUTES=${JWT_EXPIRATION_MINUTES:-60}
+      # Rate Limiting
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
+      - RATE_LIMIT_REQUESTS_PER_MINUTE=${RATE_LIMIT_REQUESTS_PER_MINUTE:-60}
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      # Prometheus multiprocess mode
+      - PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus_multiproc
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - valerie-prod-network
+
+  # ==========================================================================
+  # Redis - Session Storage
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: valerie-redis-prod
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-prod-data:/data
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - valerie-prod-network
+
+  # ==========================================================================
+  # Oracle Fusion Mock Server (remove in production)
+  # ==========================================================================
+  oracle-mock:
+    build:
+      context: ../oracle-fusion-mock-server
+      dockerfile: Dockerfile
+    container_name: valerie-oracle-mock-prod
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - valerie-prod-network
+    profiles:
+      - with-mock  # Only starts with --profile with-mock
+
+  # ==========================================================================
+  # Prometheus - Metrics Collection
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: valerie-prometheus-prod
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus-prod-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - valerie-prod-network
+
+  # ==========================================================================
+  # Grafana - Dashboards & Visualization
+  # ==========================================================================
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: valerie-grafana-prod
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-prod-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-valerie123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3001}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-piechart-panel
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - valerie-prod-network
+
+  # ==========================================================================
+  # Langfuse - LLM Tracing (Optional)
+  # ==========================================================================
+  langfuse-server:
+    image: langfuse/langfuse:2
+    container_name: valerie-langfuse-prod
+    ports:
+      - "3002:3000"
+    environment:
+      - DATABASE_URL=postgresql://langfuse:${LANGFUSE_DB_PASSWORD:-langfuse}@langfuse-db:5432/langfuse
+      - NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${LANGFUSE_URL:-http://localhost:3002}
+      - SALT=${LANGFUSE_SALT}
+      - TELEMETRY_ENABLED=false
+      - AUTH_DISABLE_SIGNUP=true
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/public/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - valerie-prod-network
+    profiles:
+      - with-langfuse  # Only starts with --profile with-langfuse
+
+  langfuse-db:
+    image: postgres:15-alpine
+    container_name: valerie-langfuse-db-prod
+    environment:
+      - POSTGRES_USER=langfuse
+      - POSTGRES_PASSWORD=${LANGFUSE_DB_PASSWORD:-langfuse}
+      - POSTGRES_DB=langfuse
+    volumes:
+      - langfuse-db-prod-data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse -d langfuse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - valerie-prod-network
+    profiles:
+      - with-langfuse
+
+# ==========================================================================
+# Networks
+# ==========================================================================
+networks:
+  valerie-prod-network:
+    driver: bridge
+
+# ==========================================================================
+# Volumes
+# ==========================================================================
+volumes:
+  redis-prod-data:
+  prometheus-prod-data:
+  grafana-prod-data:
+  langfuse-db-prod-data:

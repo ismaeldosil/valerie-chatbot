@@ -1,0 +1,648 @@
+# Metrics Configuration
+# Valerie Supplier Recommendation Chatbot
+# Defines metrics, dashboards, and alerting
+
+version: "1.0.0"
+
+# =============================================================================
+# Metrics Collection
+# =============================================================================
+
+collection:
+  enabled: true
+  backend: prometheus
+
+  prometheus:
+    port: 9090
+    path: /metrics
+    scrape_interval: 15s
+
+  labels:
+    global:
+      - service: valerie-chatbot
+      - environment: ${ENVIRONMENT:-development}
+      - version: ${VERSION:-1.0.0}
+
+# =============================================================================
+# Agent Metrics
+# =============================================================================
+
+agent_metrics:
+  # ---------------------------------------------------------------------------
+  # Common Metrics (All Agents)
+  # ---------------------------------------------------------------------------
+  common:
+    counters:
+      - name: agent_requests_total
+        help: "Total number of requests to agent"
+        labels: [agent, status]
+
+      - name: agent_errors_total
+        help: "Total number of errors by agent"
+        labels: [agent, error_code, severity]
+
+      - name: agent_retries_total
+        help: "Total retry attempts"
+        labels: [agent, error_code]
+
+    histograms:
+      - name: agent_request_duration_seconds
+        help: "Request duration in seconds"
+        labels: [agent]
+        buckets: [0.1, 0.25, 0.5, 1, 2.5, 5, 10]
+
+      - name: agent_response_size_bytes
+        help: "Response size in bytes"
+        labels: [agent]
+        buckets: [100, 500, 1000, 5000, 10000, 50000]
+
+    gauges:
+      - name: agent_active_requests
+        help: "Currently active requests"
+        labels: [agent]
+
+      - name: agent_health_status
+        help: "Agent health status (1=healthy, 0=unhealthy)"
+        labels: [agent]
+
+  # ---------------------------------------------------------------------------
+  # Orchestrator Metrics
+  # ---------------------------------------------------------------------------
+  orchestrator:
+    counters:
+      - name: orchestrator_routing_total
+        help: "Total routing decisions"
+        labels: [target_agent, intent]
+
+      - name: orchestrator_fallback_total
+        help: "Fallback activations"
+        labels: [reason]
+
+    histograms:
+      - name: orchestrator_total_latency_seconds
+        help: "End-to-end request latency"
+        buckets: [0.5, 1, 2, 5, 10, 20, 30]
+
+    gauges:
+      - name: orchestrator_concurrent_sessions
+        help: "Active concurrent sessions"
+
+  # ---------------------------------------------------------------------------
+  # Intent Classifier Metrics
+  # ---------------------------------------------------------------------------
+  intent_classifier:
+    counters:
+      - name: intent_classification_total
+        help: "Classifications by intent type"
+        labels: [intent, confidence_bucket]
+
+      - name: intent_ambiguity_total
+        help: "Ambiguous intent detections"
+        labels: [primary_intent, secondary_intent]
+
+      - name: intent_clarification_total
+        help: "Clarification requests generated"
+
+    histograms:
+      - name: intent_confidence_score
+        help: "Confidence score distribution"
+        buckets: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+      - name: intent_entities_extracted
+        help: "Number of entities extracted per request"
+        buckets: [0, 1, 2, 3, 5, 10]
+
+  # ---------------------------------------------------------------------------
+  # Supplier Search Metrics
+  # ---------------------------------------------------------------------------
+  supplier_search:
+    counters:
+      - name: search_queries_total
+        help: "Total search queries"
+        labels: [result_count_bucket]
+
+      - name: search_no_results_total
+        help: "Searches with no results"
+
+      - name: search_criteria_relaxation_total
+        help: "Criteria relaxation activations"
+        labels: [criteria_relaxed]
+
+    histograms:
+      - name: search_result_count
+        help: "Number of results per search"
+        buckets: [0, 1, 3, 5, 10, 20, 50]
+
+      - name: search_match_score
+        help: "Match score distribution"
+        buckets: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+
+    gauges:
+      - name: search_cache_size
+        help: "Search cache size"
+
+  # ---------------------------------------------------------------------------
+  # Compliance Validation Metrics
+  # ---------------------------------------------------------------------------
+  compliance_validation:
+    counters:
+      - name: compliance_validations_total
+        help: "Total compliance validations"
+        labels: [result]
+
+      - name: compliance_alerts_total
+        help: "Compliance alerts generated"
+        labels: [severity, certification_type]
+
+      - name: compliance_expirations_detected_total
+        help: "Expiring certifications detected"
+        labels: [days_bucket]
+
+    histograms:
+      - name: compliance_certifications_checked
+        help: "Certifications checked per validation"
+        buckets: [1, 2, 3, 5, 10]
+
+    gauges:
+      - name: compliance_suppliers_at_risk
+        help: "Suppliers with expiring certifications"
+        labels: [risk_level]
+
+  # ---------------------------------------------------------------------------
+  # Supplier Comparison Metrics
+  # ---------------------------------------------------------------------------
+  supplier_comparison:
+    counters:
+      - name: comparison_requests_total
+        help: "Total comparison requests"
+        labels: [supplier_count]
+
+      - name: comparison_recommendations_total
+        help: "Recommendations made"
+        labels: [winning_factor]
+
+    histograms:
+      - name: comparison_score_spread
+        help: "Score spread between top suppliers"
+        buckets: [1, 5, 10, 20, 30, 50]
+
+      - name: comparison_dimensions_used
+        help: "Dimensions used in comparison"
+        buckets: [1, 2, 3, 4, 5, 6]
+
+  # ---------------------------------------------------------------------------
+  # Oracle Fusion Integration Metrics
+  # ---------------------------------------------------------------------------
+  oracle_fusion:
+    counters:
+      - name: oracle_requests_total
+        help: "Total Oracle API requests"
+        labels: [endpoint, status_code]
+
+      - name: oracle_cache_hits_total
+        help: "Cache hit count"
+        labels: [cache_type]
+
+      - name: oracle_cache_misses_total
+        help: "Cache miss count"
+        labels: [cache_type]
+
+      - name: oracle_rate_limit_hits_total
+        help: "Rate limit encounters"
+
+      - name: oracle_circuit_breaker_trips_total
+        help: "Circuit breaker activations"
+
+    histograms:
+      - name: oracle_api_latency_seconds
+        help: "Oracle API latency"
+        labels: [endpoint]
+        buckets: [0.1, 0.25, 0.5, 1, 2, 5, 10]
+
+      - name: oracle_response_size_bytes
+        help: "Oracle response size"
+        buckets: [1000, 5000, 10000, 50000, 100000]
+
+    gauges:
+      - name: oracle_circuit_breaker_state
+        help: "Circuit breaker state (0=closed, 1=open, 2=half-open)"
+
+      - name: oracle_rate_limit_remaining
+        help: "Remaining rate limit quota"
+
+      - name: oracle_cache_size_bytes
+        help: "Cache size in bytes"
+        labels: [cache_type]
+
+  # ---------------------------------------------------------------------------
+  # Risk Assessment Metrics
+  # ---------------------------------------------------------------------------
+  risk_assessment:
+    counters:
+      - name: risk_assessments_total
+        help: "Total risk assessments"
+        labels: [risk_level, assessment_type]
+
+      - name: risk_alerts_generated_total
+        help: "Risk alerts generated"
+        labels: [risk_category, severity]
+
+    histograms:
+      - name: risk_score_distribution
+        help: "Risk score distribution"
+        buckets: [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
+
+      - name: risk_categories_assessed
+        help: "Risk categories assessed per supplier"
+        buckets: [1, 2, 3, 4, 5, 6]
+
+    gauges:
+      - name: risk_high_risk_suppliers
+        help: "Count of high-risk suppliers"
+
+  # ---------------------------------------------------------------------------
+  # Response Generation Metrics
+  # ---------------------------------------------------------------------------
+  response_generation:
+    counters:
+      - name: response_generations_total
+        help: "Total responses generated"
+        labels: [response_type, format]
+
+      - name: response_followups_suggested_total
+        help: "Follow-up suggestions made"
+
+    histograms:
+      - name: response_word_count
+        help: "Response word count"
+        buckets: [50, 100, 150, 200, 300, 500]
+
+      - name: response_generation_latency_seconds
+        help: "Response generation time"
+        buckets: [0.1, 0.25, 0.5, 1, 2]
+
+  # ---------------------------------------------------------------------------
+  # Memory & Context Metrics
+  # ---------------------------------------------------------------------------
+  memory_context:
+    counters:
+      - name: memory_operations_total
+        help: "Memory operations"
+        labels: [operation_type]
+
+      - name: reference_resolutions_total
+        help: "Reference resolution attempts"
+        labels: [resolution_type, success]
+
+      - name: session_creates_total
+        help: "New sessions created"
+
+      - name: session_expires_total
+        help: "Sessions expired"
+
+    histograms:
+      - name: reference_resolution_confidence
+        help: "Resolution confidence scores"
+        buckets: [0.3, 0.5, 0.7, 0.8, 0.9, 1.0]
+
+      - name: session_turn_count
+        help: "Turns per session at expiry"
+        buckets: [1, 3, 5, 10, 20, 50, 100]
+
+    gauges:
+      - name: memory_active_sessions
+        help: "Currently active sessions"
+
+      - name: memory_entities_tracked
+        help: "Entities being tracked"
+
+# =============================================================================
+# Business Metrics
+# =============================================================================
+
+business_metrics:
+  counters:
+    - name: user_queries_total
+      help: "Total user queries"
+      labels: [intent_type, user_role]
+
+    - name: successful_recommendations_total
+      help: "Successful supplier recommendations"
+
+    - name: supplier_selections_total
+      help: "Suppliers selected by users"
+      labels: [supplier_id]
+
+    - name: compliance_blocks_total
+      help: "Suppliers blocked for compliance"
+
+  histograms:
+    - name: session_duration_seconds
+      help: "User session duration"
+      buckets: [30, 60, 120, 300, 600, 1800]
+
+    - name: queries_per_session
+      help: "Queries per user session"
+      buckets: [1, 2, 3, 5, 10, 20]
+
+  gauges:
+    - name: daily_active_users
+      help: "Daily active users"
+
+    - name: supplier_database_size
+      help: "Total suppliers in database"
+
+# =============================================================================
+# SLI/SLO Definitions
+# =============================================================================
+
+slos:
+  # Availability
+  - name: availability
+    description: "System availability"
+    target: 99.9
+    window: 30d
+    indicator:
+      type: ratio
+      good: 'sum(rate(agent_requests_total{status="success"}[5m]))'
+      total: 'sum(rate(agent_requests_total[5m]))'
+
+  # Latency - P50
+  - name: latency_p50
+    description: "50th percentile latency"
+    target: 2000  # ms
+    window: 30d
+    indicator:
+      type: histogram
+      metric: orchestrator_total_latency_seconds
+      percentile: 50
+
+  # Latency - P95
+  - name: latency_p95
+    description: "95th percentile latency"
+    target: 5000  # ms
+    window: 30d
+    indicator:
+      type: histogram
+      metric: orchestrator_total_latency_seconds
+      percentile: 95
+
+  # Error Rate
+  - name: error_rate
+    description: "Error rate"
+    target: 0.1  # 0.1%
+    window: 30d
+    indicator:
+      type: ratio
+      bad: 'sum(rate(agent_errors_total{severity="error"}[5m]))'
+      total: 'sum(rate(agent_requests_total[5m]))'
+
+  # Search Relevance
+  - name: search_relevance
+    description: "Search result relevance"
+    target: 90  # % with score > 70
+    window: 7d
+    indicator:
+      type: ratio
+      good: 'sum(search_match_score_bucket{le="70"})'
+      total: 'sum(search_queries_total)'
+
+  # Intent Accuracy
+  - name: intent_accuracy
+    description: "Intent classification accuracy"
+    target: 95
+    window: 7d
+    indicator:
+      type: ratio
+      good: 'sum(intent_classification_total{confidence_bucket="high"})'
+      total: 'sum(intent_classification_total)'
+
+# =============================================================================
+# Alerting Rules
+# =============================================================================
+
+alerts:
+  # ---------------------------------------------------------------------------
+  # Critical Alerts
+  # ---------------------------------------------------------------------------
+  critical:
+    - name: HighErrorRate
+      condition: 'rate(agent_errors_total{severity="error"}[5m]) > 0.1'
+      for: 5m
+      severity: critical
+      summary: "High error rate detected"
+      description: "Error rate exceeds 10% for 5 minutes"
+      runbook: "runbooks/high-error-rate.md"
+      notify:
+        - pagerduty
+        - slack_critical
+
+    - name: OracleOutage
+      condition: 'oracle_circuit_breaker_state == 1'
+      for: 1m
+      severity: critical
+      summary: "Oracle Fusion circuit breaker open"
+      description: "Oracle integration is failing, circuit breaker activated"
+      runbook: "runbooks/oracle-outage.md"
+      notify:
+        - pagerduty
+        - slack_critical
+
+    - name: ServiceDown
+      condition: 'up == 0'
+      for: 1m
+      severity: critical
+      summary: "Service is down"
+      notify:
+        - pagerduty
+
+  # ---------------------------------------------------------------------------
+  # Warning Alerts
+  # ---------------------------------------------------------------------------
+  warning:
+    - name: HighLatency
+      condition: 'histogram_quantile(0.95, rate(orchestrator_total_latency_seconds_bucket[5m])) > 5'
+      for: 10m
+      severity: warning
+      summary: "High latency detected"
+      description: "P95 latency exceeds 5 seconds"
+      notify:
+        - slack_ops
+
+    - name: LowCacheHitRate
+      condition: 'rate(oracle_cache_hits_total[5m]) / (rate(oracle_cache_hits_total[5m]) + rate(oracle_cache_misses_total[5m])) < 0.5'
+      for: 15m
+      severity: warning
+      summary: "Low cache hit rate"
+      notify:
+        - slack_ops
+
+    - name: HighRiskSuppliers
+      condition: 'risk_high_risk_suppliers > 10'
+      for: 1h
+      severity: warning
+      summary: "Many high-risk suppliers detected"
+      notify:
+        - slack_supply_chain
+
+    - name: ComplianceExpirations
+      condition: 'sum(compliance_expirations_detected_total{days_bucket="30"}) > 5'
+      for: 1h
+      severity: warning
+      summary: "Multiple certifications expiring soon"
+      notify:
+        - slack_compliance
+
+  # ---------------------------------------------------------------------------
+  # Info Alerts
+  # ---------------------------------------------------------------------------
+  info:
+    - name: HighTraffic
+      condition: 'rate(user_queries_total[5m]) > 100'
+      for: 5m
+      severity: info
+      summary: "High traffic volume"
+      notify:
+        - slack_ops
+
+# =============================================================================
+# Dashboards
+# =============================================================================
+
+dashboards:
+  # ---------------------------------------------------------------------------
+  # Overview Dashboard
+  # ---------------------------------------------------------------------------
+  - name: overview
+    title: "Supplier Chatbot - Overview"
+    refresh: 30s
+    panels:
+      - title: "Request Rate"
+        type: graph
+        query: 'sum(rate(agent_requests_total[5m]))'
+
+      - title: "Error Rate"
+        type: graph
+        query: 'sum(rate(agent_errors_total[5m])) / sum(rate(agent_requests_total[5m]))'
+
+      - title: "P95 Latency"
+        type: graph
+        query: 'histogram_quantile(0.95, sum(rate(orchestrator_total_latency_seconds_bucket[5m])) by (le))'
+
+      - title: "Active Sessions"
+        type: stat
+        query: 'memory_active_sessions'
+
+      - title: "Intent Distribution"
+        type: pie
+        query: 'sum by (intent) (rate(intent_classification_total[1h]))'
+
+      - title: "Agent Health"
+        type: table
+        query: 'agent_health_status'
+
+  # ---------------------------------------------------------------------------
+  # Agent Performance Dashboard
+  # ---------------------------------------------------------------------------
+  - name: agent_performance
+    title: "Supplier Chatbot - Agent Performance"
+    refresh: 30s
+    panels:
+      - title: "Agent Request Rate"
+        type: graph
+        query: 'sum by (agent) (rate(agent_requests_total[5m]))'
+
+      - title: "Agent Latency (P50)"
+        type: graph
+        query: 'histogram_quantile(0.50, sum by (agent, le) (rate(agent_request_duration_seconds_bucket[5m])))'
+
+      - title: "Agent Latency (P95)"
+        type: graph
+        query: 'histogram_quantile(0.95, sum by (agent, le) (rate(agent_request_duration_seconds_bucket[5m])))'
+
+      - title: "Agent Error Rate"
+        type: graph
+        query: 'sum by (agent) (rate(agent_errors_total[5m]))'
+
+  # ---------------------------------------------------------------------------
+  # Oracle Integration Dashboard
+  # ---------------------------------------------------------------------------
+  - name: oracle_integration
+    title: "Supplier Chatbot - Oracle Integration"
+    refresh: 30s
+    panels:
+      - title: "API Request Rate"
+        type: graph
+        query: 'sum(rate(oracle_requests_total[5m]))'
+
+      - title: "API Latency"
+        type: graph
+        query: 'histogram_quantile(0.95, sum(rate(oracle_api_latency_seconds_bucket[5m])) by (le))'
+
+      - title: "Cache Hit Rate"
+        type: gauge
+        query: 'sum(rate(oracle_cache_hits_total[5m])) / (sum(rate(oracle_cache_hits_total[5m])) + sum(rate(oracle_cache_misses_total[5m])))'
+
+      - title: "Circuit Breaker State"
+        type: stat
+        query: 'oracle_circuit_breaker_state'
+
+      - title: "Rate Limit Remaining"
+        type: gauge
+        query: 'oracle_rate_limit_remaining'
+
+  # ---------------------------------------------------------------------------
+  # Business Metrics Dashboard
+  # ---------------------------------------------------------------------------
+  - name: business
+    title: "Supplier Chatbot - Business Metrics"
+    refresh: 1m
+    panels:
+      - title: "Daily Active Users"
+        type: stat
+        query: 'daily_active_users'
+
+      - title: "Queries by Intent"
+        type: pie
+        query: 'sum by (intent_type) (increase(user_queries_total[24h]))'
+
+      - title: "Successful Recommendations"
+        type: counter
+        query: 'increase(successful_recommendations_total[24h])'
+
+      - title: "Session Duration"
+        type: histogram
+        query: 'histogram_quantile(0.50, sum(rate(session_duration_seconds_bucket[1h])) by (le))'
+
+      - title: "Compliance Blocks"
+        type: graph
+        query: 'sum(rate(compliance_blocks_total[1h]))'
+
+# =============================================================================
+# Notification Channels
+# =============================================================================
+
+notification_channels:
+  pagerduty:
+    type: pagerduty
+    service_key: ${PAGERDUTY_SERVICE_KEY}
+
+  slack_critical:
+    type: slack
+    webhook_url: ${SLACK_CRITICAL_WEBHOOK}
+    channel: "#alerts-critical"
+
+  slack_ops:
+    type: slack
+    webhook_url: ${SLACK_OPS_WEBHOOK}
+    channel: "#chatbot-ops"
+
+  slack_supply_chain:
+    type: slack
+    webhook_url: ${SLACK_SUPPLY_CHAIN_WEBHOOK}
+    channel: "#supply-chain-alerts"
+
+  slack_compliance:
+    type: slack
+    webhook_url: ${SLACK_COMPLIANCE_WEBHOOK}
+    channel: "#compliance-alerts"
