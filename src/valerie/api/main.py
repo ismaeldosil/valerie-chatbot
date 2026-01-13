@@ -48,15 +48,19 @@ async def lifespan(app: FastAPI):
         logger.warning("langgraph_init_failed", error=str(e))
         logger.info("api_demo_mode", message="API will run in demo mode only")
 
-    # Check API key
+    # Check LLM API key (Groq or Anthropic)
     try:
+        import os
         from valerie.models import get_settings
 
         settings = get_settings()
-        if settings.anthropic_api_key:
+        groq_key = os.getenv("VALERIE_GROQ_API_KEY")
+        if groq_key:
+            logger.info("api_full_mode", message="Groq API key configured (free tier)")
+        elif settings.anthropic_api_key:
             logger.info("api_full_mode", message="Anthropic API key configured")
         else:
-            logger.info("api_demo_mode", message="No API key - running in demo mode")
+            logger.info("api_demo_mode", message="No LLM API key - running in demo mode")
     except Exception:
         logger.warning("settings_load_failed", message="Could not load settings")
 

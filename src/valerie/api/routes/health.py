@@ -58,23 +58,42 @@ async def health_check() -> HealthResponse:
     except Exception as e:
         services.append(ServiceHealth(name="redis", status="degraded", message=str(e)))
 
-    # Check API key configuration
+    # Check LLM API key configuration (Groq or Anthropic)
     try:
+        import os
         from valerie.models import get_settings
 
         settings = get_settings()
-        api_key_status = "configured" if settings.anthropic_api_key else "not configured"
-        services.append(
-            ServiceHealth(
-                name="anthropic_api",
-                status="healthy" if settings.anthropic_api_key else "degraded",
-                message=f"API key {api_key_status}",
+        groq_key = os.getenv("VALERIE_GROQ_API_KEY")
+        anthropic_key = settings.anthropic_api_key
+
+        if groq_key:
+            services.append(
+                ServiceHealth(
+                    name="llm_api",
+                    status="healthy",
+                    message="Groq API key configured (free tier)",
+                )
             )
-        )
-        if not settings.anthropic_api_key:
+        elif anthropic_key:
+            services.append(
+                ServiceHealth(
+                    name="llm_api",
+                    status="healthy",
+                    message="Anthropic API key configured",
+                )
+            )
+        else:
+            services.append(
+                ServiceHealth(
+                    name="llm_api",
+                    status="degraded",
+                    message="No LLM API key configured (demo mode)",
+                )
+            )
             overall_status = "degraded"
     except Exception as e:
-        services.append(ServiceHealth(name="anthropic_api", status="unhealthy", message=str(e)))
+        services.append(ServiceHealth(name="llm_api", status="unhealthy", message=str(e)))
 
     return HealthResponse(
         status=overall_status, version=VERSION, timestamp=datetime.now(), services=services

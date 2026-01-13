@@ -55,10 +55,11 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # LLM Configuration
-# Railway sets ANTHROPIC_API_KEY as environment variable
-# Demo mode is used if no API key is available
-ENV VALERIE_USE_PAID_LLM=true
-ENV VALERIE_LLM_PROVIDER=anthropic
+# Uses Groq free tier (30 req/min, 14,400 req/day)
+# Set VALERIE_GROQ_API_KEY in Railway environment variables
+# Get free API key at: https://console.groq.com/
+ENV VALERIE_LLM_PROVIDER=groq
+ENV VALERIE_GROQ_MODEL=llama-3.3-70b-versatile
 
 # Service URLs (optional - demo mode works without these)
 # ENV VALERIE_REDIS_URL=redis://redis:6379
