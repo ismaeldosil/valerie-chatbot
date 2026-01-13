@@ -159,7 +159,7 @@ async def _process_with_llm(
     # Build system prompt with supplier context
     supplier_context = _get_supplier_context()
     system_prompt = f"""You are Valerie, an AI assistant for supplier management in aerospace manufacturing.
-You help users find suppliers, check compliance, compare options, and assess risks.
+You help users find suppliers, check compliance, and compare options.
 
 Available supplier data:
 {supplier_context}
@@ -338,7 +338,7 @@ def _generate_demo_response(intent: str, message: str) -> tuple[str, list[AgentE
     if intent == "greeting":
         response = (
             "Hello! I'm the Valerie Supplier Chatbot. I can help you find "
-            "suppliers, check compliance, compare options, and assess risks. "
+            "suppliers, check compliance, and compare options."
             "What would you like to do?"
         )
         return response, executions
@@ -454,7 +454,7 @@ def _generate_demo_response(intent: str, message: str) -> tuple[str, list[AgentE
     else:
         response = (
             "I'm not sure how to help with that. "
-            "Try asking about suppliers, compliance, or risk assessment."
+            "Try asking about suppliers, compliance, or comparisons."
         )
 
     return response, executions

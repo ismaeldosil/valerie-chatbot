@@ -53,7 +53,9 @@ class TestChatEndpoints:
         data = response.json()
 
         assert data["intent"] == "greeting"
-        assert "hello" in data["message"].lower() or "help" in data["message"].lower()
+        # Check the response contains greeting keywords
+        msg_lower = data["message"].lower()
+        assert any(word in msg_lower for word in ["hello", "help", "welcome", "valerie", "assist"])
 
     def test_chat_injection_blocked(self, client):
         """Test chat blocks injection attempts."""

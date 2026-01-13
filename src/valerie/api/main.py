@@ -80,7 +80,7 @@ REST API for the Valerie multi-agent chatbot system.
 - **Chat Interface**: Natural language queries about suppliers
 - **Supplier Search**: Direct search by process, certification, location
 - **Compliance Checking**: Verify supplier certifications
-- **Risk Assessment**: Evaluate supplier risk profiles
+- **Supplier Comparison**: Compare suppliers side-by-side
 - **Multi-Agent Pipeline**: 15 specialized AI agents
 
 ### Authentication
