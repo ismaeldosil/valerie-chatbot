@@ -54,17 +54,15 @@ ENV PYTHONPATH=/app/src
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# LLM Configuration (uses model-registry.yaml by default)
-# Override these to switch providers:
-#   - VALERIE_USE_PAID_LLM=true  -> Uses Anthropic
-#   - VALERIE_USE_PAID_LLM=false -> Uses Ollama (default)
-ENV VALERIE_USE_PAID_LLM=false
-ENV VALERIE_LLM_PROVIDER=ollama
+# LLM Configuration
+# Railway sets ANTHROPIC_API_KEY as environment variable
+# Demo mode is used if no API key is available
+ENV VALERIE_USE_PAID_LLM=true
+ENV VALERIE_LLM_PROVIDER=anthropic
 
-# Service URLs
-ENV VALERIE_REDIS_URL=redis://redis:6379
-ENV VALERIE_ORACLE_BASE_URL=http://oracle-mock:3000
-ENV VALERIE_OLLAMA_BASE_URL=http://ollama:11434
+# Service URLs (optional - demo mode works without these)
+# ENV VALERIE_REDIS_URL=redis://redis:6379
+# ENV VALERIE_ORACLE_BASE_URL=http://oracle-mock:3000
 
 # Expose port (Railway sets PORT dynamically)
 EXPOSE 8000
