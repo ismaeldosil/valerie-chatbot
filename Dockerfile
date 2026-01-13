@@ -68,8 +68,11 @@ ENV VALERIE_GROQ_MODEL=llama-3.3-70b-versatile
 # Expose port (Railway sets PORT dynamically)
 EXPOSE 8000
 
-# Copy run.py for Railway deployment
-COPY run.py .
+# Copy run.py for Railway deployment and set ownership
+COPY --chown=valerie:valerie run.py .
+
+# Ensure all app files are readable by valerie user
+RUN chown -R valerie:valerie /app
 
 # Switch to non-root user
 USER valerie

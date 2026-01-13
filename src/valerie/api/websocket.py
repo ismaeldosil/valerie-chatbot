@@ -110,8 +110,7 @@ DEMO_RESPONSES = {
             "I can help you with:\n\n",
             "- **Finding suppliers** for specific processes\n",
             "- **Checking compliance** and certifications\n",
-            "- **Comparing suppliers** side-by-side\n",
-            "- **Assessing risk** profiles\n\n",
+            "- **Comparing suppliers** side-by-side\n\n",
             "How can I assist you today?",
         ],
         "agents": [
