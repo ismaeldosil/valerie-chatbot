@@ -25,7 +25,7 @@ class SupplierDomain(BaseDomain):
     domain_id = "supplier"
     display_name = "Supplier Management"
     description = (
-        "Manage suppliers, check compliance, assess risks, "
+        "Manage suppliers, check compliance, compare options, "
         "and get technical information about supply chain."
     )
     version = "2.0.0"
