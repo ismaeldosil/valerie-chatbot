@@ -483,12 +483,14 @@ async def chat(request: ChatRequest) -> ChatResponse:
     if intent == "blocked":
         response_text, agents_executed = _generate_demo_response(intent, request.message)
     else:
-        # Check if real mode is available
+        # Check if real mode is available (Groq or Anthropic API key)
         try:
+            import os
             from valerie.models import get_settings
 
             settings = get_settings()
-            use_real_mode = bool(settings.anthropic_api_key)
+            groq_key = os.getenv("VALERIE_GROQ_API_KEY")
+            use_real_mode = bool(groq_key or settings.anthropic_api_key)
         except Exception:
             use_real_mode = False
 
